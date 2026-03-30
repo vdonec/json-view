@@ -1,6 +1,6 @@
 {
-  "name": "@pgrabovets/json-view",
-  "version": "2.8.1",
+  "name": "@vdonec/json-view",
+  "version": "1.0.0",
   "description": "This is a javascript library for displaying json data into a DOM",
   "type": "module",
   "files": [
@@ -20,9 +20,12 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pgrabovets/json-view.git"
+    "url": "git+https://github.com/vdonec/json-view.git"
   },
   "keywords": [
     "json"

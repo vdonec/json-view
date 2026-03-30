@@ -1,126 +1,95 @@
 # json-view
 
-This is a JavaScript library for displaying JSON data in the DOM.
-[Demo link](http://pgrabovets.github.io/json-view/)
+A small JavaScript library to display JSON data as an expandable tree in the DOM.
 
-## Installation
+## Quick start (local demo)
 
-```javascript
-  npm install '@pgrabovets/json-view'
+```bash
+npm install
+npm run dev
 ```
 
-## How to use
+Then open `http://localhost:5173/`.
 
-Import the jsonview library from the npm package:
+The demo page is `index.html`, and demo logic is in `src/main.js`.
 
-```javascript
-import jsonview from "@pgrabovets/json-view";
+## Build package
+
+```bash
+npm run build
 ```
 
-Or include jsonview.umd.cjs and jsonview.css from the dist directory in your HTML page:
+Build output is written to `dist/`:
+- `dist/jsonview.js` (ES module)
+- `dist/jsonview.umd.cjs` (UMD)
+- `dist/jsonview.css`
 
-```html
-<link href="jsonview.css" rel="stylesheet" />
-<script src="jsonview.umd.cjs"></script>
+## Install from npm
+
+```bash
+npm install @vdonec/json-view
 ```
 
-Get JSON data and render the tree into the DOM:
+## Usage
 
 ```javascript
-// get json data
-const data = '{"name": "json-view","version": "1.0.0"}';
+import "@vdonec/json-view/style.css";
+import jsonview from "@vdonec/json-view";
 
-// create json tree object
-const tree = jsonview.create(data);
+const data = {
+  name: "json-view",
+  version: "3.x",
+  features: ["render", "expand", "collapse"],
+};
 
-// render tree into dom element
-jsonview.render(tree, document.querySelector(".tree"));
+const root = document.querySelector("#root");
+const tree = jsonview.renderJSON(data, root, { defaultExpanded: false });
+const treeAllExpanded = jsonview.renderJSON(data, root, { defaultExpanded: true });
+const treeDepthExpanded = jsonview.renderJSON(data, root, { defaultExpanded: 1 });
 
-// you can render JSON data without creating a tree manually
-const tree = jsonview.renderJSON(data, document.querySelector(".tree"));
-```
-
-Control methods:
-
-```javascript
-// expand tree
 jsonview.expand(tree);
-
-// collapse tree
 jsonview.collapse(tree);
-
-// traverse tree object
-jsonview.traverse(tree, function (node) {
-  console.log(node);
-});
-
-// toggle between show and hide
-jsonview.toggleNode(tree);
-
-// destroy and unmount JSON tree from the DOM
-jsonview.destroy(tree);
 ```
 
-## Example 1
+`defaultExpanded` supports `boolean | number`:
+- `false` (or omitted) - all nodes are collapsed by default
+- `true` - expand all nodes
+- `0` - expand only root node
+- `1` - expand root and first level children
+- `N` - expand nodes with depth `<= N` (`root` depth is `0`)
 
-```html
-<!DOCTYPE html>
-<html>
-  <head>
-    <link href="dist/jsonview.css" rel="stylesheet" />
-    <title>JSON VIEW</title>
-  </head>
-  <body>
-    <div class="root"></div>
+Non-integer or negative values are treated as collapsed-by-default behavior.
 
-    <script type="text/javascript" src="dist/jsonview.umd.cjs"></script>
-    <script type="text/javascript">
-      fetch("dist/example2.json")
-        .then((res) => {
-          return res.text();
-        })
-        .then((data) => {
-          const tree = jsonview.create(data);
-          jsonview.render(tree, document.querySelector("#root"));
-          jsonview.expand(tree);
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    </script>
-  </body>
-</html>
+## API
+
+- `create(jsonData, options)` - create tree object (`options.defaultExpanded: boolean | number`)
+- `render(tree, targetElement)` - render existing tree
+- `renderJSON(jsonData, targetElement, options)` - create + render in one call (`options.defaultExpanded: boolean | number`)
+- `expand(node)` - expand all descendants
+- `collapse(node)` - collapse all descendants
+- `toggleNode(node)` - toggle one node
+- `traverse(node, callback)` - DFS traversal
+- `destroy(tree)` - remove listeners and unmount tree
+
+## Project structure
+
+```text
+json-view/
+  index.html               # local demo page
+  public/
+    example2.json          # demo JSON payload
+  src/
+    json-view.js           # library core
+    main.js                # demo bootstrap
+    style.css              # library styles
+    utils/                 # helpers
+  dist/                    # build output (generated)
 ```
 
-## Example 2
+## Scripts
 
-```javascript
-import "@pgrabovets/json-view/style.css";
-import jsonview from "@pgrabovets/json-view";
-
-fetch("example2.json")
-  .then((res) => {
-    return res.text();
-  })
-  .then((data) => {
-    const tree = jsonview.create(data);
-    jsonview.render(tree, document.querySelector(".root"));
-    jsonview.expand(tree);
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-```
-
-## Development
-
-### Clone the repository and install dependencies:
-
-```
-$ npm install
-
-$ npm run dev
-$ npm run build
-
-open http://localhost:5173/
+```bash
+npm run dev      # start Vite dev server
+npm run build    # build library to dist/
+npm run preview  # preview built output
 ```

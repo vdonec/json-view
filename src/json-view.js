@@ -1,7 +1,7 @@
 import "./style.css";
 
-import getDataType from "./utils/getDataType";
-import { listen, detach, element } from "./utils/dom";
+import getDataType from "./utils/getDataType.js";
+import { listen, detach, element } from "./utils/dom.js";
 
 const classes = {
   HIDDEN: "hidden",
@@ -36,10 +36,99 @@ function notExpandedTemplate(params = {}) {
   `;
 }
 
+// Create container element for json tree
+// @return {HTMLElement}
 function createContainerElement() {
   const el = element("div");
   el.className = classes.CONTAINER;
   return el;
+}
+
+function getChildCount(value, type) {
+  if (type === "array") {
+    return value.length;
+  }
+
+  if (type === "object" && value !== null) {
+    return Object.keys(value).length;
+  }
+
+  return 0;
+}
+
+function isNodeExpandable(node) {
+  return node.hasChildren;
+}
+
+function ensureChildren(node) {
+  if (!isNodeExpandable(node) || node.childrenLoaded) {
+    return;
+  }
+
+  Object.keys(node.value).forEach((key) => {
+    const childValue = node.value[key];
+    const childType = getDataType(childValue);
+    const childDepth = node.depth + 1;
+    const child = createNode({
+      value: childValue,
+      key,
+      depth: childDepth,
+      type: childType,
+      isExpanded: shouldExpandByDepth(childDepth, node.expandDepthLimit),
+      defaultExpanded: node.defaultExpanded,
+      expandDepthLimit: node.expandDepthLimit,
+      parent: node,
+    });
+
+    node.children.push(child);
+  });
+
+  node.childrenLoaded = true;
+}
+
+function ensureExpandedSubtree(node) {
+  if (!node.isExpanded) {
+    return;
+  }
+
+  ensureChildren(node);
+  node.children.forEach((child) => ensureExpandedSubtree(child));
+}
+
+function insertAfter(containerEl, nodeEl, afterEl) {
+  if (afterEl && afterEl.nextSibling) {
+    containerEl.insertBefore(nodeEl, afterEl.nextSibling);
+    return;
+  }
+
+  containerEl.appendChild(nodeEl);
+}
+
+function mountExpandedSubtree(node, containerEl, insertAfterEl) {
+  ensureChildren(node);
+
+  node.children.forEach((child) => {
+    if (!child.el) {
+      child.el = createNodeElement(child);
+    }
+
+    insertAfter(containerEl, child.el, insertAfterEl);
+    insertAfterEl = child.el;
+
+    if (child.isExpanded) {
+      insertAfterEl = mountExpandedSubtree(child, containerEl, insertAfterEl);
+    }
+  });
+
+  return insertAfterEl;
+}
+
+function mountExpandedChildren(node) {
+  if (!node.el || !node.el.parentNode) {
+    return;
+  }
+
+  mountExpandedSubtree(node, node.el.parentNode, node.el);
 }
 
 function hideNodeChildren(node) {
@@ -61,7 +150,7 @@ function showNodeChildren(node) {
 }
 
 function setCaretIconDown(node) {
-  if (node.children.length > 0 && node.el) {
+  if (isNodeExpandable(node) && node.el) {
     const icon = node.el.querySelector("." + classes.ICON);
     if (icon) {
       icon.classList.replace(classes.CARET_RIGHT, classes.CARET_DOWN);
@@ -70,7 +159,7 @@ function setCaretIconDown(node) {
 }
 
 function setCaretIconRight(node) {
-  if (node.children.length > 0 && node.el) {
+  if (isNodeExpandable(node) && node.el) {
     const icon = node.el.querySelector("." + classes.ICON);
     if (icon) {
       icon.classList.replace(classes.CARET_DOWN, classes.CARET_RIGHT);
@@ -85,6 +174,8 @@ export function toggleNode(node) {
     hideNodeChildren(node);
   } else {
     node.isExpanded = true;
+    ensureExpandedSubtree(node);
+    mountExpandedChildren(node);
     setCaretIconDown(node);
     showNodeChildren(node);
   }
@@ -99,7 +190,7 @@ function createNodeElement(node) {
   let el = element("div");
 
   const getSizeString = (node) => {
-    const len = node.children.length;
+    const len = node.childCount;
     if (node.type === "array") return `[${len}]`;
     if (node.type === "object") return `{${len}}`;
 
@@ -117,10 +208,10 @@ function createNodeElement(node) {
         return `${node.value}`;
 
       case "array":
-        return `[${node.children.length}]`;
+        return `[${node.childCount}]`;
 
       case "object":
-        return `{${node.children.length}}`;
+        return `{${node.childCount}}`;
 
       default:
         return `${node.value}`;
@@ -141,7 +232,7 @@ function createNodeElement(node) {
     }
   };
 
-  if (node.children.length > 0) {
+  if (isNodeExpandable(node)) {
     el.innerHTML = expandedTemplate({
       key: node.key,
       size: getSizeString(node),
@@ -173,6 +264,10 @@ function createNodeElement(node) {
 }
 
 /**
+ * @typedef {(node: object) => void} Callback
+ */
+
+/**
  * Recursively traverse Tree object
  * @param {Object} node
  * @param {Callback} callback
@@ -192,48 +287,48 @@ export function traverse(node, callback) {
  * @return {object}
  */
 function createNode(opt = {}) {
-  const isEmptyObject = (value) => {
-    return getDataType(value) === "object" && Object.keys(value).length === 0;
-  };
-
   let value = opt.hasOwnProperty("value") ? opt.value : null;
-
-  if (isEmptyObject(value)) {
-    value = "{}";
-  }
+  const type = opt.type || getDataType(value);
+  const childCount = getChildCount(value, type);
+  const expandDepthLimit =
+    typeof opt.expandDepthLimit === "number"
+      ? opt.expandDepthLimit
+      : opt.defaultExpanded === true
+      ? Number.POSITIVE_INFINITY
+      : -1;
 
   return {
     key: opt.key || null,
     parent: opt.parent || null,
     value: value,
     isExpanded: opt.isExpanded || false,
-    type: opt.type || null,
+    defaultExpanded: opt.defaultExpanded || false,
+    type,
+    hasChildren: childCount > 0,
+    childCount,
     children: opt.children || [],
+    childrenLoaded: opt.childrenLoaded || false,
+    expandDepthLimit,
     el: opt.el || null,
     depth: opt.depth || 0,
     dispose: null,
   };
 }
 
-/**
- * Create subnode for node
- * @param {object} Json data
- * @param {object} node
- */
-function createSubnode(data, node) {
-  if (typeof data === "object") {
-    for (let key in data) {
-      const child = createNode({
-        value: data[key],
-        key: key,
-        depth: node.depth + 1,
-        type: getDataType(data[key]),
-        parent: node,
-      });
-      node.children.push(child);
-      createSubnode(data[key], child);
-    }
+function getExpandDepthLimit(defaultExpanded) {
+  if (defaultExpanded === true) {
+    return Number.POSITIVE_INFINITY;
   }
+
+  if (Number.isInteger(defaultExpanded) && defaultExpanded >= 0) {
+    return defaultExpanded;
+  }
+
+  return -1;
+}
+
+function shouldExpandByDepth(depth, expandDepthLimit) {
+  return depth <= expandDepthLimit;
 }
 
 function getJsonObject(data) {
@@ -243,28 +338,38 @@ function getJsonObject(data) {
 /**
  * Create tree
  * @param {object | string} jsonData
+ * @param {object} options
+ * @param {boolean | number} options.defaultExpanded - true expands all nodes; number expands nodes up to that depth (root = 0)
  * @return {object}
  */
-export function create(jsonData) {
+export function create(jsonData, options = {}) {
   const parsedData = getJsonObject(jsonData);
+  const defaultExpanded = options.defaultExpanded === true;
+  const expandDepthLimit = getExpandDepthLimit(options.defaultExpanded);
   const rootNode = createNode({
     value: parsedData,
     key: getDataType(parsedData),
     type: getDataType(parsedData),
+    isExpanded: shouldExpandByDepth(0, expandDepthLimit),
+    defaultExpanded,
+    expandDepthLimit,
   });
-  createSubnode(parsedData, rootNode);
+
+  ensureExpandedSubtree(rootNode);
+
   return rootNode;
 }
 
 /**
  * Render JSON string into DOM container
  * @param {string | object} jsonData
- * @param {htmlElement} targetElement
+ * @param {HTMLElement} targetElement
+ * @param {object} options
  * @return {object} tree
  */
-export function renderJSON(jsonData, targetElement) {
+export function renderJSON(jsonData, targetElement, options = {}) {
   const parsedData = getJsonObject(jsonData);
-  const tree = create(parsedData);
+  const tree = create(parsedData, options);
   render(tree, targetElement);
 
   return tree;
@@ -273,10 +378,12 @@ export function renderJSON(jsonData, targetElement) {
 /**
  * Render tree into DOM container
  * @param {object} tree
- * @param {htmlElement} targetElement
+ * @param {HTMLElement} targetElement
  */
 export function render(tree, targetElement) {
   const containerEl = createContainerElement();
+
+  ensureExpandedSubtree(tree);
 
   traverse(tree, function (node) {
     node.el = createNodeElement(node);
@@ -287,6 +394,15 @@ export function render(tree, targetElement) {
 }
 
 export function expand(node) {
+  node.isExpanded = true;
+  ensureChildren(node);
+
+  node.children.forEach((child) => {
+    expand(child);
+  });
+
+  mountExpandedChildren(node);
+
   traverse(node, function (child) {
     child.el && child.el.classList.remove(classes.HIDDEN);
     child.isExpanded = true;

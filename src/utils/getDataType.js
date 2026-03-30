@@ -1,6 +1,6 @@
 /**
  * Get value data type
- * @param {*} data
+ * @param {*} val
  */
 export default function getDataType(val) {
   if (Array.isArray(val)) return 'array';
