@@ -251,7 +251,7 @@ function createNodeElement(node) {
   const lineEl = el.children[0];
 
   if (node.parent !== null) {
-    if (node.isExpanded) {
+    if (node.parent.isExpanded) {
       lineEl.classList.remove(classes.HIDDEN);
     } else {
       lineEl.classList.add(classes.HIDDEN);
