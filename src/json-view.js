@@ -13,24 +13,32 @@ const classes = {
 };
 
 function expandedTemplate(params = {}) {
-  const { key, size, isExpanded = false } = params;
+  const { key, size, isExpanded = false, valueType, showValueType = false } = params;
   const caretIconClass = isExpanded ? classes.CARET_DOWN : classes.CARET_RIGHT;
+  const typeTemplate = showValueType
+    ? `<div class="json-type">${valueType}</div>`
+    : "";
   return `
     <div class="line">
       <div class="caret-icon"><i class="fas ${caretIconClass}"></i></div>
       <div class="json-key">${key}</div>
+      ${typeTemplate}
       <div class="json-size">${size}</div>
     </div>
   `;
 }
 
 function notExpandedTemplate(params = {}) {
-  const { key, value, type } = params;
+  const { key, value, type, valueType, showValueType = false } = params;
+  const typeTemplate = showValueType
+    ? `<div class="json-type">${valueType}</div>`
+    : "";
   return `
     <div class="line">
       <div class="empty-icon"></div>
       <div class="json-key">${key}</div>
       <div class="json-separator">:</div>
+      ${typeTemplate}
       <div class="json-value ${type}">${value}</div>
     </div>
   `;
@@ -74,6 +82,7 @@ function ensureChildren(node) {
       key,
       depth: childDepth,
       type: childType,
+      showValueType: node.showValueType,
       isExpanded: shouldExpandByDepth(childDepth, node.expandDepthLimit),
       defaultExpanded: node.defaultExpanded,
       expandDepthLimit: node.expandDepthLimit,
@@ -218,7 +227,7 @@ function createNodeElement(node) {
     }
   };
 
-  const getTypeString = (node) => {
+  const getValueClassName = (node) => {
     switch (node.type) {
       case "string":
       case "number":
@@ -237,6 +246,8 @@ function createNodeElement(node) {
       key: node.key,
       size: getSizeString(node),
       isExpanded: node.isExpanded,
+      valueType: node.type,
+      showValueType: node.showValueType,
     });
     const caretEl = el.querySelector("." + classes.CARET_ICON);
     node.dispose = listen(caretEl, "click", () => toggleNode(node));
@@ -244,7 +255,9 @@ function createNodeElement(node) {
     el.innerHTML = notExpandedTemplate({
       key: node.key,
       value: getValueString(node),
-      type: getTypeString(node),
+      type: getValueClassName(node),
+      valueType: node.type,
+      showValueType: node.showValueType,
     });
   }
 
@@ -304,6 +317,7 @@ function createNode(opt = {}) {
     isExpanded: opt.isExpanded || false,
     defaultExpanded: opt.defaultExpanded || false,
     type,
+    showValueType: opt.showValueType === true,
     hasChildren: childCount > 0,
     childCount,
     children: opt.children || [],
@@ -340,16 +354,19 @@ function getJsonObject(data) {
  * @param {object | string} jsonData
  * @param {object} options
  * @param {boolean | number} options.defaultExpanded - true expands all nodes; number expands nodes up to that depth (root = 0)
+ * @param {boolean} options.showValueType - true adds type label before leaf value
  * @return {object}
  */
 export function create(jsonData, options = {}) {
   const parsedData = getJsonObject(jsonData);
   const defaultExpanded = options.defaultExpanded === true;
   const expandDepthLimit = getExpandDepthLimit(options.defaultExpanded);
+  const showValueType = options.showValueType === true;
   const rootNode = createNode({
     value: parsedData,
     key: getDataType(parsedData),
     type: getDataType(parsedData),
+    showValueType,
     isExpanded: shouldExpandByDepth(0, expandDepthLimit),
     defaultExpanded,
     expandDepthLimit,
@@ -365,6 +382,7 @@ export function create(jsonData, options = {}) {
  * @param {string | object} jsonData
  * @param {HTMLElement} targetElement
  * @param {object} options
+ * @param {boolean} options.showValueType - true adds type label before leaf value
  * @return {object} tree
  */
 export function renderJSON(jsonData, targetElement, options = {}) {

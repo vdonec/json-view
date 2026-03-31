@@ -97,7 +97,7 @@ function renderTree(data, statusText) {
   }
 
   state.rootEl.innerHTML = "";
-  state.currentTree = jsonview.renderJSON(data, state.rootEl, { defaultExpanded: 1 });
+  state.currentTree = jsonview.renderJSON(data, state.rootEl, { defaultExpanded: 0, showValueType: true });
   updateStats(state.rootEl);
   setStatus(statusText, false);
 }
