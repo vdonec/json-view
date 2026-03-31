@@ -1,0 +1,44 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+    
+    - name: Check package.json for required fields
+      run: |
+        node -e "
+        const pkg = require('./package.json');
+        const required = ['name', 'version', 'description', 'license', 'author', 'repository', 'homepage', 'bugs'];
+        const missing = required.filter(field => !pkg[field]);
+        if (missing.length > 0) {
+          console.error('Missing required fields:', missing.join(', '));
+          process.exit(1);
+        }
+        console.log('✓ All required package.json fields present');
+        "
+

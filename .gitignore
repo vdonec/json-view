@@ -1,5 +1,36 @@
+# IDE
 .idea
+*.iml
+.vscode
+*.swp
+*.swo
+*~
+
+# Dependencies
 node_modules
 package-lock.json
+
+# Build
 dist/
-*.iml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Misc
+.cache
+.parcel-cache
+.pnp
+.pnp.js

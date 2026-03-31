@@ -10,6 +10,7 @@
   "module": "dist/jsonview.js",
   "exports": {
     ".": {
+      "types": "./dist/jsonview.d.ts",
       "import": "./dist/jsonview.js",
       "require": "./dist/jsonview.umd.cjs"
     },
@@ -27,12 +28,26 @@
     "type": "git",
     "url": "git+https://github.com/vdonec/json-view.git"
   },
+  "homepage": "https://github.com/vdonec/json-view#readme",
+  "bugs": {
+    "url": "https://github.com/vdonec/json-view/issues"
+  },
   "keywords": [
-    "json"
+    "json",
+    "json-viewer",
+    "json-tree",
+    "expand",
+    "collapse"
   ],
-  "author": "pavel grabovets",
+  "author": {
+    "name": "Pavel Grabovets",
+    "url": "https://github.com/vdonec"
+  },
   "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "devDependencies": {
-    "vite": "^7.2.4"
+    "vite": "8.0.3"
   }
 }

@@ -2,6 +2,8 @@
 
 A small JavaScript library to display JSON data as an expandable tree in the DOM.
 
+**✨ Zero runtime dependencies** - Fully self-contained library
+
 ## Quick start (local demo)
 
 ```bash
@@ -71,6 +73,17 @@ Non-integer or negative values are treated as collapsed-by-default behavior.
 - `traverse(node, callback)` - DFS traversal
 - `destroy(tree)` - remove listeners and unmount tree
 
+## Security
+
+This library prioritizes security:
+
+- **Zero runtime dependencies** - No external dependencies to audit
+- **Minimal footprint** - Only what's needed for JSON rendering
+- **DOM-based rendering** - Uses native DOM APIs for inherent XSS protection
+- **No code execution** - Simply renders data, never executes code
+
+For security policies and reporting vulnerabilities, see [SECURITY.md](./SECURITY.md).
+
 ## Project structure
 
 ```text
@@ -93,3 +106,4 @@ npm run dev      # start Vite dev server
 npm run build    # build library to dist/
 npm run preview  # preview built output
 ```
+

@@ -1,0 +1,29 @@
+{
+  "name": "@vdonec/json-view",
+  "version": "1.0.2",
+  "description": "A small JavaScript library to display JSON data as an expandable tree in the DOM",
+  "homepage": "https://github.com/vdonec/json-view",
+  "repository": "https://github.com/vdonec/json-view",
+  "license": "MIT",
+  "author": "Pavel Grabovets",
+  "contact": "https://github.com/vdonec",
+  "keywords": [
+    "json",
+    "json-viewer",
+    "json-tree",
+    "expand",
+    "collapse"
+  ],
+  "security": {
+    "contactUrl": "https://github.com/vdonec/json-view/security/advisories",
+    "reportingPolicy": "https://github.com/vdonec/json-view/blob/main/SECURITY.md"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^7.2.4"
+  },
+  "runtimeDependencies": 0,
+  "devDependencies": 1,
+  "buildTools": ["vite"]
+}
+
