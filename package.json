@@ -1,6 +1,6 @@
 {
   "name": "@vdonec/json-view",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "This is a javascript library for displaying json data into a DOM",
   "type": "module",
   "files": [

@@ -21,5 +21,5 @@
   "prop_empty_string": "",
   "prop_empty_array": [],
   "prop_boolean": true,
-  "array": [1, "two", "", {}]
+  "array_object": [1, "two", "", {}]
 }
