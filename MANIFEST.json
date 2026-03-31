@@ -1,6 +1,6 @@
 {
   "name": "@vdonec/json-view",
-  "version": "1.0.2",
+  "version": "1.0.6",
   "description": "A small JavaScript library to display JSON data as an expandable tree in the DOM",
   "homepage": "https://github.com/vdonec/json-view",
   "repository": "https://github.com/vdonec/json-view",
@@ -20,10 +20,10 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "vite": "^7.2.4"
+    "vite": "8.0.3"
   },
   "runtimeDependencies": 0,
-  "devDependencies": 1,
+  "devDependenciesCount": 1,
   "buildTools": ["vite"]
 }
 
