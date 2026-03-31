@@ -31,7 +31,7 @@ See [SECURITY.md](./SECURITY.md) for details.
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Make your changes
-4. Test your changes: `npm run dev` and `npm run build`
+4. Test your changes: run `npm run test` (required), then use `npm run dev` for manual UI checks if needed
 5. Commit with clear messages: `git commit -m "Add feature: description"`
 6. Push to your fork
 7. Create a Pull Request
@@ -66,6 +66,7 @@ npm run preview
 ## Testing
 
 - Test your changes locally before submitting PR
+- Run `npm run test` and keep `test/xss-regression.test.js` passing
 - Test in both ES module and UMD builds
 - Test in different browsers if possible
 - Verify no console errors or warnings

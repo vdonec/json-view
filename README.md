@@ -79,7 +79,8 @@ This library prioritizes security:
 
 - **Zero runtime dependencies** - No external dependencies to audit
 - **Minimal footprint** - Only what's needed for JSON rendering
-- **DOM-based rendering** - Uses native DOM APIs for inherent XSS protection
+- **Safe text rendering** - Escapes untrusted JSON-derived text before injecting UI markup
+- **Regression coverage** - Includes `test/xss-regression.test.js` to ensure untrusted keys/values render as text, not executable HTML
 - **No code execution** - Simply renders data, never executes code
 
 For security policies and reporting vulnerabilities, see [SECURITY.md](./SECURITY.md).
@@ -105,5 +106,6 @@ json-view/
 npm run dev      # start Vite dev server
 npm run build    # build library to dist/
 npm run preview  # preview built output
+npm run test     # build + run automated tests (includes XSS regression test)
 ```
 

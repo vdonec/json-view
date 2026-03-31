@@ -30,8 +30,13 @@ When using this library:
 
 - This library is designed to render JSON data as DOM elements
 - Ensure that any JSON data passed to this library is properly validated
-- XSS Protection: The library uses DOM APIs for rendering, which provides inherent XSS protection
+- XSS Protection: JSON-derived keys/values are escaped before being injected into UI markup
 - Always validate and sanitize user input before passing to JSON data structures
+
+## Security Testing
+
+- The project includes automated XSS regression coverage in `test/xss-regression.test.js`
+- Run `npm run test` before releases and after changes in JSON rendering behavior
 
 ## Dependencies Security
 

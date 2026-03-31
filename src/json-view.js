@@ -12,34 +12,49 @@ const classes = {
   CONTAINER: "json-container",
 };
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function expandedTemplate(params = {}) {
   const { key, size, isExpanded = false, valueType, showValueType = false } = params;
   const caretIconClass = isExpanded ? classes.CARET_DOWN : classes.CARET_RIGHT;
+  const safeKey = escapeHtml(key ?? "");
+  const safeSize = escapeHtml(size ?? "");
+  const safeValueType = escapeHtml(valueType ?? "");
   const typeTemplate = showValueType
-    ? `<div class="json-type">${valueType}</div>`
+    ? `<div class="json-type">${safeValueType}</div>`
     : "";
   return `
     <div class="line">
       <div class="caret-icon"><i class="fas ${caretIconClass}"></i></div>
-      <div class="json-key">${key}</div>
+      <div class="json-key">${safeKey}</div>
       ${typeTemplate}
-      <div class="json-size">${size}</div>
+      <div class="json-size">${safeSize}</div>
     </div>
   `;
 }
 
 function notExpandedTemplate(params = {}) {
   const { key, value, type, valueType, showValueType = false } = params;
+  const safeKey = escapeHtml(key ?? "");
+  const safeValue = escapeHtml(value ?? "");
+  const safeValueType = escapeHtml(valueType ?? "");
   const typeTemplate = showValueType
-    ? `<div class="json-type">${valueType}</div>`
+    ? `<div class="json-type">${safeValueType}</div>`
     : "";
   return `
     <div class="line">
       <div class="empty-icon"></div>
-      <div class="json-key">${key}</div>
+      <div class="json-key">${safeKey}</div>
       <div class="json-separator">:</div>
       ${typeTemplate}
-      <div class="json-value ${type}">${value}</div>
+      <div class="json-value ${type}">${safeValue}</div>
     </div>
   `;
 }
