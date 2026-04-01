@@ -7,9 +7,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  packages: write
   id-token: write
+  contents: read
 
 jobs:
   test:
@@ -95,4 +94,4 @@ jobs:
           echo "✅ All required files present"
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish --access public
