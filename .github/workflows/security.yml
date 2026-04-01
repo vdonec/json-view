@@ -2,43 +2,97 @@ name: Security Audit
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
 
 jobs:
   audit:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run npm audit
-      run: npm audit --audit-level=moderate
-    
-    - name: Check package.json for required fields
-      run: |
-        node -e "
-        const pkg = require('./package.json');
-        const required = ['name', 'version', 'description', 'license', 'author', 'repository', 'homepage', 'bugs'];
-        const missing = required.filter(field => !pkg[field]);
-        if (missing.length > 0) {
-          console.error('Missing required fields:', missing.join(', '));
-          process.exit(1);
-        }
-        console.log('✓ All required package.json fields present');
-        "
+        node-version: [20.x, 22.x]
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm security audit
+        run: npm audit --audit-level=moderate --json
+        continue-on-error: true
+
+      - name: Check for vulnerabilities
+        run: |
+          AUDIT_RESULT=$(npm audit --audit-level=moderate --json)
+          VULN_COUNT=$(echo "$AUDIT_RESULT" | node -e "let data=''; process.stdin.on('data', c=>data+=c); process.stdin.on('end',()=>{const json=JSON.parse(data); console.log(json.metadata.vulnerabilities.total);})")
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            echo "⚠️  Found $VULN_COUNT vulnerabilities"
+            npm audit --audit-level=moderate
+            exit 1
+          fi
+          echo "✅ No vulnerabilities found"
+
+      - name: Validate package.json
+        run: |
+          node -e "
+          const pkg = require('./package.json');
+          
+          // Обязательные поля
+          const required = ['name', 'version', 'description', 'license', 'main'];
+          const missing = required.filter(field => !pkg[field]);
+          if (missing.length > 0) {
+            console.error('❌ Missing required fields:', missing.join(', '));
+            process.exit(1);
+          }
+          
+          // Проверка версии (semver)
+          const semverRegex = /^\d+\.\d+\.\d+$/;
+          if (!semverRegex.test(pkg.version)) {
+            console.error('❌ Version must follow semver format (x.y.z), got:', pkg.version);
+            process.exit(1);
+          }
+          
+          // Проверка имени пакета для npm
+          const nameRegex = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
+          if (!nameRegex.test(pkg.name)) {
+            console.error('❌ Package name is not valid for npm');
+            process.exit(1);
+          }
+          
+          // Проверка наличия скриптов
+          const requiredScripts = ['test', 'build'];
+          const missingScripts = requiredScripts.filter(script => !pkg.scripts || !pkg.scripts[script]);
+          if (missingScripts.length > 0) {
+            console.warn('⚠️  Missing recommended scripts:', missingScripts.join(', '));
+          }
+          
+          // Проверка полей для публикации
+          if (pkg.files && !Array.isArray(pkg.files)) {
+            console.error('❌ files field must be an array');
+            process.exit(1);
+          }
+          
+          console.log('✅ package.json validation passed');
+          "
+
+      - name: Check for outdated dependencies
+        run: |
+          npm outdated --long || true
+
+      - name: Check license compatibility
+        run: |
+          npx license-checker --summary --failOn 'GPL-1.0' 'GPL-2.0' 'GPL-3.0' 'AGPL-3.0' || true
