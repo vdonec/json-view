@@ -20,6 +20,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node ./scripts/copy-types.mjs",
+    "build:demo": "vite build --config vite.config.demo.js",
     "preview": "vite preview",
     "test": "npm run build && node --test test/**/*.test.js"
   },
