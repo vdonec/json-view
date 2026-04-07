@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>json-view example</title>
+    <style>
+        body {
+            margin: 24px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #fcfcfd;
+        }
+
+        .demo {
+            max-width: 840px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+
+        p {
+            margin: 0;
+            color: #475467;
+        }
+
+        .panel {
+            margin-top: 16px;
+            padding: 14px;
+            border: 1px solid #e4e7ec;
+            border-radius: 12px;
+            background: #fff;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px 12px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #344054;
+            font-size: 14px;
+        }
+
+        .option-item input[type="number"] {
+            width: 84px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 14px;
+        }
+
+        .option-note {
+            margin: 0;
+            color: #667085;
+            font-size: 12px;
+        }
+
+        button {
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            background: #fff;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #f9fafb;
+        }
+
+        #status {
+            font-size: 13px;
+            color: #667085;
+        }
+
+        #stats {
+            font-size: 13px;
+            color: #344054;
+        }
+
+        #root {
+            max-height: 50vh !important;
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            overflow: auto !important;
+        }
+
+        fieldset {
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 6px 8px !important;
+        }
+
+        fieldset legend {
+            font-size: 14px;
+            color: #344054;
+            padding: 0 6px;
+        }
+    </style>
+</head>
+<body>
+<main class="demo">
+    <h1>json-view example</h1>
+    <p>Example data is loaded from <code>public/example2.json</code>.</p>
+
+    <section class="panel">
+        <div class="controls">
+            <button id="btn-generate-large" type="button">Generate large JSON</button>
+            <button id="btn-load-example" type="button">Load example2.json</button>
+            <button id="btn-expand-all" type="button">Expand all</button>
+            <button id="btn-collapse-all" type="button">Collapse all</button>
+        </div>
+
+        <fieldset>
+            <legend>Options are applied automatically when controls change.</legend>
+            <div class="option-grid">
+                <label class="option-item" for="opt-show-value-type">
+                    <input id="opt-show-value-type" type="checkbox" checked/>
+                    <span>showValueType</span>
+                </label>
+
+                <label class="option-item" for="opt-virtualize">
+                    <input id="opt-virtualize" type="checkbox" checked/>
+                    <span>virtualize</span>
+                </label>
+
+                <label class="option-item" for="opt-default-expanded-all">
+                    <input id="opt-default-expanded-all" type="checkbox"/>
+                    <span>defaultExpanded = true (expand all)</span>
+                </label>
+
+                <label class="option-item" for="opt-default-expanded-enabled">
+                    <input id="opt-default-expanded-enabled" type="checkbox" checked/>
+                    <span>enable defaultExpanded option</span>
+                </label>
+
+                <label class="option-item" for="opt-default-expanded-depth">
+                    <span>defaultExpanded depth</span>
+                    <input id="opt-default-expanded-depth" type="number" min="0" step="1" value="0"/>
+                </label>
+
+                <label class="option-item" for="opt-overscan-rows">
+                    <span>overscanRows</span>
+                    <input id="opt-overscan-rows" type="number" min="0" step="1" value="8"/>
+                </label>
+            </div>
+        </fieldset>
+
+        <div class="controls-bottom">
+            <span id="status">Preparing demo...</span>
+            <span id="stats">Visible: 0 | Hidden: 0 | Total: 0</span>
+        </div>
+
+        <div id="root"></div>
+    </section>
+</main>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

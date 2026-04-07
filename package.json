@@ -1,0 +1,56 @@
+{
+  "name": "@vdonec/json-view",
+  "version": "2.0.0",
+  "description": "This is a javascript library for displaying json data into a DOM",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "dist/jsonview.umd.cjs",
+  "module": "dist/jsonview.js",
+  "types": "dist/jsonview.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/jsonview.d.ts",
+      "import": "./dist/jsonview.js",
+      "require": "./dist/jsonview.umd.cjs"
+    },
+    "./style.css": "./dist/jsonview.css"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node ./scripts/copy-types.mjs",
+    "preview": "vite preview",
+    "test": "npm run build && node --test test/**/*.test.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vdonec/json-view.git"
+  },
+  "homepage": "https://github.com/vdonec/json-view#readme",
+  "bugs": {
+    "url": "https://github.com/vdonec/json-view/issues"
+  },
+  "keywords": [
+    "json",
+    "json-viewer",
+    "json-tree",
+    "expand",
+    "collapse"
+  ],
+  "author": {
+    "name": "Pavel Grabovets",
+    "url": "https://github.com/vdonec"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "devDependencies": {
+    "jsdom": "29.0.1",
+    "vite": "8.0.3"
+  }
+}
