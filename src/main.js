@@ -78,11 +78,18 @@ function syncOptionControlsState() {
 }
 
 async function loadExampleData() {
-  const urls = ["/example2.json", "./public/example2.json"];
+  const urls = [
+    new URL("../public/example2.json", import.meta.url).href,
+    "./example2.json",
+  ];
   for (const url of urls) {
-    const response = await fetch(url);
-    if (response.ok) {
-      return response.text();
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        return response.text();
+      }
+    } catch {
+      // try next URL
     }
   }
 
