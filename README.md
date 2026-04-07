@@ -4,6 +4,16 @@ A small JavaScript library to display JSON data as an expandable tree in the DOM
 
 **✨ Zero runtime dependencies** — Fully self-contained library
 
+## Live Demo
+
+Try the interactive demo: **https://vdonec.github.io/json-view/**
+
+The demo lets you:
+- Load example JSON or generate large test data
+- Toggle rendering options (`defaultExpanded`, `showValueType`, `virtualize`, `overscanRows`)
+- Expand/collapse nodes and inspect statistics
+- Test virtualization performance with thousands of nodes
+
 ## Quick start (local demo)
 
 ```bash
