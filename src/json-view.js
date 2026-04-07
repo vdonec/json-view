@@ -291,16 +291,15 @@ function renderVirtualizedTree(rootNode) {
     scrollTop = Math.max(viewportScrollTop - containerTop, 0);
   }
 
-  let startIndex = 0;
-  let endIndex = totalCount;
+  // Use a fallback height when the viewport has not been laid out yet (clientHeight === 0).
+  // This prevents rendering the entire tree on the first synchronous call before browser layout.
+  const effectiveViewportHeight = viewportHeight > 0 ? viewportHeight : lineHeight * 20;
 
-  if (viewportHeight > 0) {
-    startIndex = Math.max(Math.floor(scrollTop / lineHeight) - overscanRows, 0);
-    endIndex = Math.min(
-      Math.ceil((scrollTop + viewportHeight) / lineHeight) + overscanRows,
-      totalCount,
-    );
-  }
+  const startIndex = Math.max(Math.floor(scrollTop / lineHeight) - overscanRows, 0);
+  const endIndex = Math.min(
+    Math.ceil((scrollTop + effectiveViewportHeight) / lineHeight) + overscanRows,
+    totalCount,
+  );
 
   const topHeight = startIndex * lineHeight;
   const bottomHeight = Math.max(totalCount - endIndex, 0) * lineHeight;
