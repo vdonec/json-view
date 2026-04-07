@@ -12,6 +12,11 @@
   justify-content: flex-start;
 }
 
+.json-container .json-virtual-spacer {
+  width: 1px;
+  pointer-events: none;
+}
+
 .json-container .caret-icon {
   width: 18px;
   text-align: center;

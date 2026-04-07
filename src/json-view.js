@@ -10,7 +10,12 @@ const classes = {
   CARET_DOWN: "fa-caret-down",
   ICON: "fas",
   CONTAINER: "json-container",
+  VIRTUAL_SPACER: "json-virtual-spacer",
 };
+
+const DEFAULT_LINE_HEIGHT = 24;
+const DEFAULT_OVERSCAN_ROWS = 8;
+const mountedTreesByTarget = new WeakMap();
 
 function escapeHtml(value) {
   return String(value)
@@ -173,6 +178,237 @@ function showNodeChildren(node) {
   });
 }
 
+function getRootNode(node) {
+  let current = node;
+  while (current && current.parent) {
+    current = current.parent;
+  }
+
+  return current;
+}
+
+function getRenderState(node) {
+  const root = getRootNode(node);
+  return root ? root.renderState : null;
+}
+
+function isVirtualized(node) {
+  const renderState = getRenderState(node);
+  return !!(renderState && renderState.virtualize === true);
+}
+
+function collectVisibleNodes(node, result = []) {
+  result.push(node);
+  if (!node.isExpanded) {
+    return result;
+  }
+
+  ensureChildren(node);
+  node.children.forEach((child) => collectVisibleNodes(child, result));
+  return result;
+}
+
+function createVirtualSpacer() {
+  const spacer = element("div");
+  spacer.className = classes.VIRTUAL_SPACER;
+  return spacer;
+}
+
+function isElementLike(value) {
+  return !!value && value.nodeType === 1 && typeof value.addEventListener === "function";
+}
+
+function resolveViewportElement(containerEl, options = {}) {
+  return isElementLike(options.viewportElement) ? options.viewportElement : containerEl;
+}
+
+function getOffsetTopWithin(elementEl, ancestorEl) {
+  let offset = 0;
+  let current = elementEl;
+
+  while (current && current !== ancestorEl) {
+    offset += current.offsetTop || 0;
+    current = current.offsetParent;
+  }
+
+  return current === ancestorEl ? offset : 0;
+}
+
+function scheduleVirtualRender(rootNode) {
+  const renderState = getRenderState(rootNode);
+  if (!renderState || !renderState.virtualize || renderState.pendingFrame) {
+    return;
+  }
+
+  const scheduler =
+    typeof window !== "undefined" && window.requestAnimationFrame
+      ? window.requestAnimationFrame.bind(window)
+      : (cb) => setTimeout(cb, 0);
+
+  renderState.pendingFrame = scheduler(() => {
+    renderState.pendingFrame = null;
+    renderVirtualizedTree(rootNode);
+  });
+}
+
+function markVirtualStructureDirty(node) {
+  const renderState = getRenderState(node);
+  if (!renderState || !renderState.virtualize) {
+    return;
+  }
+
+  renderState.structureVersion += 1;
+  renderState.startIndex = -1;
+  renderState.endIndex = -1;
+}
+
+function renderVirtualizedTree(rootNode) {
+  const renderState = getRenderState(rootNode);
+  if (!renderState || !renderState.virtualize) {
+    return;
+  }
+
+  const { containerEl, viewportEl, topSpacerEl, bottomSpacerEl } = renderState;
+  const visibleNodes =
+    renderState.visibleNodes && renderState.visibleNodesVersion === renderState.structureVersion
+      ? renderState.visibleNodes
+      : collectVisibleNodes(rootNode);
+
+  if (visibleNodes !== renderState.visibleNodes) {
+    renderState.visibleNodes = visibleNodes;
+    renderState.visibleNodesVersion = renderState.structureVersion;
+  }
+
+  const totalCount = visibleNodes.length;
+  const viewportHeight = Math.max(viewportEl.clientHeight || 0, 0);
+  const viewportScrollTop = Math.max(viewportEl.scrollTop || 0, 0);
+  const lineHeight = Math.max(renderState.lineHeight || DEFAULT_LINE_HEIGHT, 1);
+  const overscanRows = Math.max(renderState.overscanRows || DEFAULT_OVERSCAN_ROWS, 0);
+  let scrollTop = viewportScrollTop;
+
+  if (viewportEl !== containerEl) {
+    const containerTop = getOffsetTopWithin(containerEl, viewportEl);
+    scrollTop = Math.max(viewportScrollTop - containerTop, 0);
+  }
+
+  let startIndex = 0;
+  let endIndex = totalCount;
+
+  if (viewportHeight > 0) {
+    startIndex = Math.max(Math.floor(scrollTop / lineHeight) - overscanRows, 0);
+    endIndex = Math.min(
+      Math.ceil((scrollTop + viewportHeight) / lineHeight) + overscanRows,
+      totalCount,
+    );
+  }
+
+  const topHeight = startIndex * lineHeight;
+  const bottomHeight = Math.max(totalCount - endIndex, 0) * lineHeight;
+  topSpacerEl.style.height = `${topHeight}px`;
+  bottomSpacerEl.style.height = `${bottomHeight}px`;
+
+  if (
+    renderState.startIndex === startIndex &&
+    renderState.endIndex === endIndex &&
+    renderState.totalCount === totalCount
+  ) {
+    return;
+  }
+
+  renderState.startIndex = startIndex;
+  renderState.endIndex = endIndex;
+  renderState.totalCount = totalCount;
+
+  containerEl.textContent = "";
+  containerEl.appendChild(topSpacerEl);
+
+  for (let index = startIndex; index < endIndex; index += 1) {
+    const node = visibleNodes[index];
+    if (!node.el) {
+      node.el = createNodeElement(node);
+    }
+
+    node.el.classList.remove(classes.HIDDEN);
+    containerEl.appendChild(node.el);
+  }
+
+  containerEl.appendChild(bottomSpacerEl);
+
+  const firstLine = containerEl.querySelector(".line");
+  if (firstLine) {
+    const measuredHeight = firstLine.getBoundingClientRect().height;
+    if (measuredHeight > 0) {
+      renderState.lineHeight = measuredHeight;
+    }
+  }
+}
+
+function initVirtualization(rootNode, containerEl, options = {}) {
+  const overscanRows =
+    Number.isInteger(options.overscanRows) && options.overscanRows >= 0
+      ? options.overscanRows
+      : DEFAULT_OVERSCAN_ROWS;
+  const topSpacerEl = createVirtualSpacer();
+  const bottomSpacerEl = createVirtualSpacer();
+  const viewportEl = resolveViewportElement(containerEl, options);
+  const handleViewportChange = () => scheduleVirtualRender(rootNode);
+
+  viewportEl.addEventListener("scroll", handleViewportChange);
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("resize", handleViewportChange);
+  }
+
+  // ResizeObserver tracks viewport height changes (e.g. parent grows to max-height
+  // after Expand All), which requestAnimationFrame alone misses on first frame.
+  let resizeObserver = null;
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(handleViewportChange);
+    resizeObserver.observe(viewportEl);
+  }
+
+  rootNode.renderState = {
+    virtualize: true,
+    containerEl,
+    viewportEl,
+    topSpacerEl,
+    bottomSpacerEl,
+    overscanRows,
+    lineHeight: DEFAULT_LINE_HEIGHT,
+    pendingFrame: null,
+    structureVersion: 0,
+    visibleNodes: null,
+    visibleNodesVersion: -1,
+    startIndex: -1,
+    endIndex: -1,
+    totalCount: 0,
+    handleViewportChange,
+    resizeObserver,
+  };
+}
+
+function cleanupVirtualization(rootNode) {
+  const renderState = getRenderState(rootNode);
+  if (!renderState || !renderState.virtualize) {
+    return;
+  }
+
+  renderState.viewportEl.removeEventListener("scroll", renderState.handleViewportChange);
+
+  if (renderState.resizeObserver) {
+    renderState.resizeObserver.disconnect();
+  }
+
+  if (typeof window !== "undefined") {
+    window.removeEventListener("resize", renderState.handleViewportChange);
+    if (renderState.pendingFrame && window.cancelAnimationFrame) {
+      window.cancelAnimationFrame(renderState.pendingFrame);
+    }
+  }
+
+  rootNode.renderState = null;
+}
+
 function setCaretIconDown(node) {
   if (isNodeExpandable(node) && node.el) {
     const icon = node.el.querySelector("." + classes.ICON);
@@ -192,6 +428,20 @@ function setCaretIconRight(node) {
 }
 
 export function toggleNode(node) {
+  if (isVirtualized(node)) {
+    node.isExpanded = !node.isExpanded;
+    if (node.isExpanded) {
+      ensureExpandedSubtree(node);
+      setCaretIconDown(node);
+    } else {
+      setCaretIconRight(node);
+    }
+
+    markVirtualStructureDirty(node);
+    scheduleVirtualRender(getRootNode(node));
+    return;
+  }
+
   if (node.isExpanded) {
     node.isExpanded = false;
     setCaretIconRight(node);
@@ -341,6 +591,7 @@ function createNode(opt = {}) {
     el: opt.el || null,
     depth: opt.depth || 0,
     dispose: null,
+    renderState: opt.renderState || null,
   };
 }
 
@@ -398,12 +649,15 @@ export function create(jsonData, options = {}) {
  * @param {HTMLElement} targetElement
  * @param {object} options
  * @param {boolean} options.showValueType - true adds type label before leaf value
+ * @param {boolean} options.virtualize - true renders only viewport rows
+ * @param {number} options.overscanRows - extra rows above/below viewport
+ * @param {HTMLElement} options.viewportElement - external scroll container for virtualization
  * @return {object} tree
  */
 export function renderJSON(jsonData, targetElement, options = {}) {
   const parsedData = getJsonObject(jsonData);
   const tree = create(parsedData, options);
-  render(tree, targetElement);
+  render(tree, targetElement, options);
 
   return tree;
 }
@@ -412,21 +666,74 @@ export function renderJSON(jsonData, targetElement, options = {}) {
  * Render tree into DOM container
  * @param {object} tree
  * @param {HTMLElement} targetElement
+ * @param {object} options
+ * @param {boolean} options.virtualize
+ * @param {number} options.overscanRows
+ * @param {HTMLElement} options.viewportElement
  */
-export function render(tree, targetElement) {
+export function render(tree, targetElement, options = {}) {
+  const mountedTree = mountedTreesByTarget.get(targetElement);
+  const mountedContainer = mountedTree && mountedTree.renderState && mountedTree.renderState.containerEl;
+
+  if (mountedTree && mountedContainer && mountedContainer.isConnected) {
+    throw new Error(
+      "Target element already contains a rendered json-view tree. Call destroy(tree) before rendering again.",
+    );
+  }
+
+  if (mountedTree && (!mountedContainer || !mountedContainer.isConnected)) {
+    mountedTreesByTarget.delete(targetElement);
+  }
+
   const containerEl = createContainerElement();
 
   ensureExpandedSubtree(tree);
 
-  traverse(tree, function (node) {
-    node.el = createNodeElement(node);
-    containerEl.appendChild(node.el);
-  });
+  if (options.virtualize === true) {
+    initVirtualization(tree, containerEl, options);
+  } else {
+    traverse(tree, function (node) {
+      node.el = createNodeElement(node);
+      containerEl.appendChild(node.el);
+    });
+    tree.renderState = {
+      virtualize: false,
+      containerEl,
+      targetElement,
+    };
+  }
+
+  if (tree.renderState) {
+    tree.renderState.targetElement = targetElement;
+  }
 
   targetElement.appendChild(containerEl);
+  mountedTreesByTarget.set(targetElement, tree);
+
+  if (options.virtualize === true) {
+    renderVirtualizedTree(tree);
+  }
 }
 
 export function expand(node) {
+  if (isVirtualized(node)) {
+    node.isExpanded = true;
+    ensureChildren(node);
+
+    node.children.forEach((child) => {
+      expand(child);
+    });
+
+    traverse(node, function (child) {
+      child.isExpanded = true;
+      setCaretIconDown(child);
+    });
+
+    markVirtualStructureDirty(node);
+    scheduleVirtualRender(getRootNode(node));
+    return;
+  }
+
   node.isExpanded = true;
   ensureChildren(node);
 
@@ -444,6 +751,16 @@ export function expand(node) {
 }
 
 export function collapse(node) {
+  if (isVirtualized(node)) {
+    traverse(node, function (child) {
+      child.isExpanded = false;
+      setCaretIconRight(child);
+    });
+    markVirtualStructureDirty(node);
+    scheduleVirtualRender(getRootNode(node));
+    return;
+  }
+
   traverse(node, function (child) {
     child.isExpanded = false;
     if (child.depth > node.depth) {
@@ -454,12 +771,24 @@ export function collapse(node) {
 }
 
 export function destroy(tree) {
+  const renderState = tree.renderState;
+  const containerEl = renderState ? renderState.containerEl : tree.el && tree.el.parentNode;
+  const targetElement = renderState ? renderState.targetElement : null;
+
+  cleanupVirtualization(tree);
+
   traverse(tree, (node) => {
     if (node.dispose) {
       node.dispose();
     }
   });
-  detach(tree.el.parentNode);
+  if (containerEl) {
+    detach(containerEl);
+  }
+
+  if (targetElement && mountedTreesByTarget.get(targetElement) === tree) {
+    mountedTreesByTarget.delete(targetElement);
+  }
 }
 
 /**

@@ -8,13 +8,74 @@ const selectors = {
   collapse: "#btn-collapse-all",
   generateLarge: "#btn-generate-large",
   loadExample: "#btn-load-example",
+  showValueType: "#opt-show-value-type",
+  virtualize: "#opt-virtualize",
+  defaultExpandedAll: "#opt-default-expanded-all",
+  defaultExpandedEnabled: "#opt-default-expanded-enabled",
+  defaultExpandedDepth: "#opt-default-expanded-depth",
+  overscanRows: "#opt-overscan-rows",
 };
 
 const state = {
   rootEl: null,
   currentTree: null,
+  currentData: null,
   statsObserver: null,
 };
+
+function parseNonNegativeInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function getRenderOptions() {
+  const showValueTypeEl = document.querySelector(selectors.showValueType);
+  const virtualizeEl = document.querySelector(selectors.virtualize);
+  const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
+  const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
+  const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
+  const overscanRowsEl = document.querySelector(selectors.overscanRows);
+
+  const options = {
+    showValueType: showValueTypeEl ? showValueTypeEl.checked : true,
+    virtualize: virtualizeEl ? virtualizeEl.checked : true,
+  };
+
+  const defaultExpandedEnabled = defaultExpandedEnabledEl
+    ? defaultExpandedEnabledEl.checked
+    : true;
+  const expandAll = defaultExpandedAllEl ? defaultExpandedAllEl.checked : false;
+
+  if (defaultExpandedEnabled) {
+    options.defaultExpanded = expandAll
+      ? true
+      : parseNonNegativeInt(defaultExpandedDepthEl ? defaultExpandedDepthEl.value : "0", 0);
+  }
+
+  if (options.virtualize) {
+    options.overscanRows = parseNonNegativeInt(overscanRowsEl ? overscanRowsEl.value : "8", 8);
+    options.viewportElement = state.rootEl;
+  }
+
+  return options;
+}
+
+function syncOptionControlsState() {
+  const virtualizeEl = document.querySelector(selectors.virtualize);
+  const overscanRowsEl = document.querySelector(selectors.overscanRows);
+  const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
+  const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
+  const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
+
+  if (overscanRowsEl && virtualizeEl) {
+    overscanRowsEl.disabled = !virtualizeEl.checked;
+  }
+
+  if (defaultExpandedDepthEl && defaultExpandedEnabledEl && defaultExpandedAllEl) {
+    defaultExpandedDepthEl.disabled =
+      !defaultExpandedEnabledEl.checked || defaultExpandedAllEl.checked;
+  }
+}
 
 async function loadExampleData() {
   const urls = ["/example2.json", "./public/example2.json"];
@@ -96,10 +157,19 @@ function renderTree(data, statusText) {
     state.currentTree = null;
   }
 
+  state.currentData = data;
   state.rootEl.innerHTML = "";
-  state.currentTree = jsonview.renderJSON(data, state.rootEl, { defaultExpanded: 0, showValueType: true });
+  state.currentTree = jsonview.renderJSON(data, state.rootEl, getRenderOptions());
   updateStats(state.rootEl);
   setStatus(statusText, false);
+}
+
+function rerenderCurrentData(statusText = "Options updated and tree re-rendered.") {
+  if (state.currentData === null) {
+    return;
+  }
+
+  renderTree(state.currentData, statusText);
 }
 
 function bindControls() {
@@ -107,6 +177,12 @@ function bindControls() {
   const collapseBtn = document.querySelector(selectors.collapse);
   const generateLargeBtn = document.querySelector(selectors.generateLarge);
   const loadExampleBtn = document.querySelector(selectors.loadExample);
+  const showValueTypeEl = document.querySelector(selectors.showValueType);
+  const virtualizeEl = document.querySelector(selectors.virtualize);
+  const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
+  const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
+  const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
+  const overscanRowsEl = document.querySelector(selectors.overscanRows);
 
   expandBtn &&
     expandBtn.addEventListener("click", () => {
@@ -134,7 +210,7 @@ function bindControls() {
       const largeData = {
         source: "generated",
         generatedAt: new Date().toISOString(),
-        data: generateLargeJsonData(3, 7),
+        data: generateLargeJsonData(4, 7),
       };
 
       renderTree(largeData, "Large JSON generated and rendered.");
@@ -151,6 +227,25 @@ function bindControls() {
         console.error(error);
       }
     });
+
+  const optionControls = [
+    showValueTypeEl,
+    virtualizeEl,
+    defaultExpandedAllEl,
+    defaultExpandedEnabledEl,
+    defaultExpandedDepthEl,
+    overscanRowsEl,
+  ];
+
+  optionControls.forEach((control) => {
+    control &&
+      control.addEventListener("change", () => {
+        syncOptionControlsState();
+        rerenderCurrentData();
+      });
+  });
+
+  syncOptionControlsState();
 
   const observer = new MutationObserver(() => updateStats(state.rootEl));
   observer.observe(state.rootEl, {
