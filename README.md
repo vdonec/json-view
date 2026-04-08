@@ -58,23 +58,24 @@ const data = {
 const root = document.querySelector("#root");
 
 // Basic render
-const tree = jsonview.renderJSON(data, root);
+let tree = jsonview.renderJSON(data, root);
 
-// Expand all nodes on load
-const treeExpanded = jsonview.renderJSON(data, root, { defaultExpanded: true });
+// Re-render into the same target: destroy previous tree first
+jsonview.destroy(tree);
+tree = jsonview.renderJSON(data, root, { defaultExpanded: true });
 
-// Expand only root and first level
-const treeDepth = jsonview.renderJSON(data, root, { defaultExpanded: 1 });
+jsonview.destroy(tree);
+tree = jsonview.renderJSON(data, root, { defaultExpanded: 1 });
 
-// Show value type labels (e.g. "string", "number")
-const treeTyped = jsonview.renderJSON(data, root, { showValueType: true });
+jsonview.destroy(tree);
+tree = jsonview.renderJSON(data, root, { showValueType: true });
 
-// Virtualized render for large data (only visible rows in DOM)
-const treeVirt = jsonview.renderJSON(data, root, {
+jsonview.destroy(tree);
+tree = jsonview.renderJSON(data, root, {
   defaultExpanded: true,
   virtualize: true,
   overscanRows: 8,
-  viewportElement: root,    // external scroll container (e.g. #root with overflow:auto)
+  viewportElement: root, // external scroll container (e.g. #root with overflow:auto)
 });
 
 // Expand / collapse programmatically
@@ -109,7 +110,7 @@ Non-integer or negative values are treated as collapsed-by-default.
 
 ### `showValueType` — `boolean` (default: `false`)
 
-When `true`, adds a type label (e.g. `string`, `number`) before each leaf value.
+When `true`, adds a type label (e.g. `string`, `number`, `object`, `array`) before each rendered node value.
 
 ### Virtualization options
 
@@ -143,7 +144,7 @@ The library automatically handles viewport resize (via `ResizeObserver`) so the 
 
 ### `create(jsonData, options)`
 
-Parses `jsonData` (string or object) and returns a tree object. Does not touch the DOM.
+Parses `jsonData` (JSON string or any JSON-compatible value) and returns a tree object. Does not touch the DOM.
 
 | Option | Type | Description |
 |---|---|---|
@@ -166,6 +167,8 @@ Call `destroy(tree)` before rendering another tree into the same target.
 ### `renderJSON(jsonData, targetElement, options)`
 
 Shortcut for `create` + `render` in one call. Accepts all options from both.
+
+`targetElement` can contain only one mounted json-view tree at a time. For re-render into the same target, call `destroy(tree)` first.
 
 ### `expand(node)`
 

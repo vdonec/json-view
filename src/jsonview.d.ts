@@ -17,6 +17,8 @@ export interface JsonViewNode {
   renderState: unknown;
 }
 
+export type JsonInput = string | number | boolean | null | object;
+
 export interface CreateOptions {
   defaultExpanded?: boolean | number;
   showValueType?: boolean;
@@ -32,9 +34,9 @@ export type RenderJSONOptions = CreateOptions & RenderOptions;
 
 export function toggleNode(node: JsonViewNode): void;
 export function traverse(node: JsonViewNode, callback: (node: JsonViewNode) => void): void;
-export function create(jsonData: string | object, options?: CreateOptions): JsonViewNode;
+export function create(jsonData: JsonInput, options?: CreateOptions): JsonViewNode;
 export function renderJSON(
-  jsonData: string | object,
+  jsonData: JsonInput,
   targetElement: HTMLElement,
   options?: RenderJSONOptions,
 ): JsonViewNode;
