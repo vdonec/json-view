@@ -26,6 +26,7 @@ export interface CreateOptions {
 
 export interface RenderOptions {
   virtualize?: boolean;
+  showScrollPath?: boolean;
   overscanRows?: number;
   viewportElement?: HTMLElement;
 }

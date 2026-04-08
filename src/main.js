@@ -10,6 +10,7 @@ const selectors = {
   loadExample: "#btn-load-example",
   showValueType: "#opt-show-value-type",
   virtualize: "#opt-virtualize",
+  showScrollPath: "#opt-show-scroll-path",
   defaultExpandedAll: "#opt-default-expanded-all",
   defaultExpandedEnabled: "#opt-default-expanded-enabled",
   defaultExpandedDepth: "#opt-default-expanded-depth",
@@ -31,6 +32,7 @@ function parseNonNegativeInt(value, fallback) {
 function getRenderOptions() {
   const showValueTypeEl = document.querySelector(selectors.showValueType);
   const virtualizeEl = document.querySelector(selectors.virtualize);
+  const showScrollPathEl = document.querySelector(selectors.showScrollPath);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
@@ -53,6 +55,7 @@ function getRenderOptions() {
   }
 
   if (options.virtualize) {
+    options.showScrollPath = showScrollPathEl ? showScrollPathEl.checked : true;
     options.overscanRows = parseNonNegativeInt(overscanRowsEl ? overscanRowsEl.value : "8", 8);
     options.viewportElement = state.rootEl;
   }
@@ -62,10 +65,15 @@ function getRenderOptions() {
 
 function syncOptionControlsState() {
   const virtualizeEl = document.querySelector(selectors.virtualize);
+  const showScrollPathEl = document.querySelector(selectors.showScrollPath);
   const overscanRowsEl = document.querySelector(selectors.overscanRows);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
+
+  if (showScrollPathEl && virtualizeEl) {
+    showScrollPathEl.disabled = !virtualizeEl.checked;
+  }
 
   if (overscanRowsEl && virtualizeEl) {
     overscanRowsEl.disabled = !virtualizeEl.checked;
@@ -186,6 +194,7 @@ function bindControls() {
   const loadExampleBtn = document.querySelector(selectors.loadExample);
   const showValueTypeEl = document.querySelector(selectors.showValueType);
   const virtualizeEl = document.querySelector(selectors.virtualize);
+  const showScrollPathEl = document.querySelector(selectors.showScrollPath);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
@@ -238,6 +247,7 @@ function bindControls() {
   const optionControls = [
     showValueTypeEl,
     virtualizeEl,
+    showScrollPathEl,
     defaultExpandedAllEl,
     defaultExpandedEnabledEl,
     defaultExpandedDepthEl,

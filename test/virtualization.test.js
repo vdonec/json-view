@@ -54,6 +54,10 @@ test("virtualize=true keeps only viewport rows in DOM and updates on scroll", as
   window.dispatchEvent(new window.Event("resize"));
   await waitForVirtualization(window);
 
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist for virtualized render");
+  assert.equal(breadcrumb.textContent, "object", "initial breadcrumb should point to root");
+
   let totalVisible = 0;
   traverse(tree, () => {
     totalVisible += 1;
@@ -65,6 +69,12 @@ test("virtualize=true keeps only viewport rows in DOM and updates on scroll", as
   container.scrollTop = 900;
   container.dispatchEvent(new window.Event("scroll"));
   await waitForVirtualization(window);
+
+  assert.equal(
+    breadcrumb.textContent,
+    "object",
+    "breadcrumb should omit last segment when top visible node is a leaf",
+  );
 
   const topSpacer = container.querySelector(".json-virtual-spacer");
   assert.ok(topSpacer, "top spacer should exist");
@@ -160,13 +170,180 @@ test("virtualization supports external viewportElement", async () => {
   const beforeScroll = container.querySelectorAll(".line").length;
   assert.ok(beforeScroll < totalVisible, "external viewport should still keep subset in DOM");
 
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist for external viewport mode");
+  assert.equal(breadcrumb.textContent, "object", "initial breadcrumb should point to root");
+
   root.scrollTop = 1000;
   root.dispatchEvent(new window.Event("scroll"));
   await waitForVirtualization(window);
 
+  assert.equal(
+    breadcrumb.textContent,
+    "object",
+    "breadcrumb should omit leaf segment with external viewport scroll",
+  );
+
   const topSpacer = container.querySelector(".json-virtual-spacer");
   assert.ok(topSpacer, "top spacer should exist");
   assert.notEqual(topSpacer.style.height, "0px", "top spacer should reflect parent scroll");
+
+  destroy(tree);
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test("virtualize mode hides breadcrumb when showScrollPath=false", async () => {
+  const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
+    pretendToBeVisual: true,
+  });
+
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+
+  const root = window.document.querySelector("#root");
+  const data = createLargeFlatObject(80);
+  const tree = renderJSON(data, root, {
+    defaultExpanded: true,
+    virtualize: true,
+    showScrollPath: false,
+  });
+
+  const container = root.querySelector(".json-container");
+  assert.ok(container, "json container should exist");
+
+  window.dispatchEvent(new window.Event("resize"));
+  await waitForVirtualization(window);
+
+  assert.equal(
+    container.querySelector(".json-breadcrumb"),
+    null,
+    "breadcrumb should not render when showScrollPath is disabled",
+  );
+
+  destroy(tree);
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test("breadcrumb omits trailing leaf segment for nested top visible row", async () => {
+  const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
+    pretendToBeVisual: true,
+  });
+
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+
+  const root = window.document.querySelector("#root");
+  const data = {
+    data: {
+      items: [
+        {
+          payload: "leaf-value",
+          meta: { id: 1 },
+        },
+      ],
+    },
+  };
+
+  const tree = renderJSON(data, root, {
+    defaultExpanded: true,
+    virtualize: true,
+    overscanRows: 0,
+  });
+
+  const container = root.querySelector(".json-container");
+  assert.ok(container, "json container should exist");
+
+  Object.defineProperty(container, "clientHeight", {
+    value: 24,
+    configurable: true,
+  });
+
+  window.dispatchEvent(new window.Event("resize"));
+  await waitForVirtualization(window);
+
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist");
+
+  container.scrollTop = 96;
+  container.dispatchEvent(new window.Event("scroll"));
+  await waitForVirtualization(window);
+
+  assert.equal(
+    breadcrumb.getAttribute("data-path"),
+    "object > data > items > 0",
+    "breadcrumb should stop at parent when top visible row is leaf payload",
+  );
+  assert.equal(
+    breadcrumb.querySelectorAll(".fa-caret-right").length,
+    3,
+    "breadcrumb should render caret separators between path segments",
+  );
+
+  destroy(tree);
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test("breadcrumb omits trailing leaf segment with external viewportElement", async () => {
+  const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
+    pretendToBeVisual: true,
+  });
+
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+
+  const root = window.document.querySelector("#root");
+  Object.defineProperty(root, "clientHeight", {
+    value: 24,
+    configurable: true,
+  });
+
+  const data = {
+    data: {
+      items: [
+        {
+          payload: "leaf-value",
+          meta: { id: 1 },
+        },
+      ],
+    },
+  };
+
+  const tree = renderJSON(data, root, {
+    defaultExpanded: true,
+    virtualize: true,
+    overscanRows: 0,
+    viewportElement: root,
+  });
+
+  const container = root.querySelector(".json-container");
+  assert.ok(container, "json container should exist");
+
+  window.dispatchEvent(new window.Event("resize"));
+  await waitForVirtualization(window);
+
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist");
+
+  root.scrollTop = 96;
+  root.dispatchEvent(new window.Event("scroll"));
+  await waitForVirtualization(window);
+
+  assert.equal(
+    breadcrumb.getAttribute("data-path"),
+    "object > data > items > 0",
+    "breadcrumb should stop at parent for leaf row with external viewport",
+  );
+  assert.equal(
+    breadcrumb.querySelectorAll(".fa-caret-right").length,
+    3,
+    "breadcrumb should render caret separators for external viewport path",
+  );
 
   destroy(tree);
   delete globalThis.window;

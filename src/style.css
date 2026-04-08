@@ -6,6 +6,28 @@
   box-sizing: border-box;
 }
 
+.json-container .json-breadcrumb {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 8px;
+  background-color: #fff;
+  border-bottom: 1px solid #ececec;
+  color: #5a5a5a;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.json-container .json-breadcrumb .fa-caret-right {
+  margin: 0 6px;
+}
+
+.json-container .json-virtual-rows {
+  width: 100%;
+}
+
 .json-container .line {
   margin: 4px 0;
   display: flex;

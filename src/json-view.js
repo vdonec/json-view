@@ -10,7 +10,9 @@ const classes = {
   CARET_DOWN: "fa-caret-down",
   ICON: "fas",
   CONTAINER: "json-container",
+  BREADCRUMB: "json-breadcrumb",
   VIRTUAL_SPACER: "json-virtual-spacer",
+  VIRTUAL_ROWS: "json-virtual-rows",
 };
 
 const DEFAULT_LINE_HEIGHT = 24;
@@ -214,6 +216,85 @@ function createVirtualSpacer() {
   return spacer;
 }
 
+function createVirtualRowsElement() {
+  const rowsEl = element("div");
+  rowsEl.className = classes.VIRTUAL_ROWS;
+  return rowsEl;
+}
+
+function createBreadcrumbElement() {
+  const breadcrumbEl = element("div");
+  breadcrumbEl.className = classes.BREADCRUMB;
+  return breadcrumbEl;
+}
+
+function getNodePathSegments(node) {
+  const segments = [];
+  let current = node;
+  while (current) {
+    if (current.key !== null && current.key !== undefined) {
+      segments.push(String(current.key));
+    }
+    current = current.parent;
+  }
+
+  return segments.reverse();
+}
+
+function getNodePath(node) {
+  return getNodePathSegments(node).join(" > ");
+}
+
+function getBreadcrumbNode(node) {
+  if (!node) {
+    return null;
+  }
+
+  if (!node.hasChildren && node.parent) {
+    return node.parent;
+  }
+
+  return node;
+}
+
+function renderBreadcrumb(breadcrumbEl, segments) {
+  const doc = breadcrumbEl.ownerDocument;
+  breadcrumbEl.textContent = "";
+
+  if (!doc) {
+    breadcrumbEl.textContent = segments.join(" > ");
+    return;
+  }
+
+  segments.forEach((segment, index) => {
+    if (index > 0) {
+      const separator = element("i");
+      separator.className = `${classes.ICON} ${classes.CARET_RIGHT}`;
+      separator.setAttribute("aria-hidden", "true");
+      breadcrumbEl.appendChild(doc.createTextNode(" "));
+      breadcrumbEl.appendChild(separator);
+      breadcrumbEl.appendChild(doc.createTextNode(" "));
+    }
+
+    breadcrumbEl.appendChild(doc.createTextNode(segment));
+  });
+}
+
+function updateBreadcrumb(renderState, visibleNodes, anchorIndex) {
+  if (!renderState || !renderState.breadcrumbEl) {
+    return;
+  }
+
+  const node = visibleNodes[anchorIndex] || visibleNodes[0] || null;
+  const breadcrumbNode = getBreadcrumbNode(node);
+  const path = getNodePath(breadcrumbNode);
+  if (renderState.breadcrumbPath !== path) {
+    renderState.breadcrumbPath = path;
+    renderState.breadcrumbEl.setAttribute("data-path", path);
+    renderBreadcrumb(renderState.breadcrumbEl, getNodePathSegments(breadcrumbNode));
+  }
+}
+
 function isElementLike(value) {
   return !!value && value.nodeType === 1 && typeof value.addEventListener === "function";
 }
@@ -268,7 +349,7 @@ function renderVirtualizedTree(rootNode) {
     return;
   }
 
-  const { containerEl, viewportEl, topSpacerEl, bottomSpacerEl } = renderState;
+  const { containerEl, viewportEl, topSpacerEl, bottomSpacerEl, breadcrumbEl, rowsEl } = renderState;
   const visibleNodes =
     renderState.visibleNodes && renderState.visibleNodesVersion === renderState.structureVersion
       ? renderState.visibleNodes
@@ -284,6 +365,10 @@ function renderVirtualizedTree(rootNode) {
   const viewportScrollTop = Math.max(viewportEl.scrollTop || 0, 0);
   const lineHeight = Math.max(renderState.lineHeight || DEFAULT_LINE_HEIGHT, 1);
   const overscanRows = Math.max(renderState.overscanRows || DEFAULT_OVERSCAN_ROWS, 0);
+  const breadcrumbHeight = Math.max(
+    (breadcrumbEl && (breadcrumbEl.offsetHeight || breadcrumbEl.getBoundingClientRect().height)) || 0,
+    0,
+  );
   let scrollTop = viewportScrollTop;
 
   if (viewportEl !== containerEl) {
@@ -291,13 +376,19 @@ function renderVirtualizedTree(rootNode) {
     scrollTop = Math.max(viewportScrollTop - containerTop, 0);
   }
 
+  const rowsScrollTop = Math.max(scrollTop - breadcrumbHeight, 0);
+
   // Use a fallback height when the viewport has not been laid out yet (clientHeight === 0).
   // This prevents rendering the entire tree on the first synchronous call before browser layout.
-  const effectiveViewportHeight = viewportHeight > 0 ? viewportHeight : lineHeight * 20;
+  const effectiveViewportHeightBase = viewportHeight > 0 ? viewportHeight : lineHeight * 20;
+  const effectiveViewportHeight = Math.max(effectiveViewportHeightBase - breadcrumbHeight, lineHeight);
 
-  const startIndex = Math.max(Math.floor(scrollTop / lineHeight) - overscanRows, 0);
+  const anchorIndex = Math.min(Math.floor(rowsScrollTop / lineHeight), Math.max(totalCount - 1, 0));
+  updateBreadcrumb(renderState, visibleNodes, anchorIndex);
+
+  const startIndex = Math.max(Math.floor(rowsScrollTop / lineHeight) - overscanRows, 0);
   const endIndex = Math.min(
-    Math.ceil((scrollTop + effectiveViewportHeight) / lineHeight) + overscanRows,
+    Math.ceil((rowsScrollTop + effectiveViewportHeight) / lineHeight) + overscanRows,
     totalCount,
   );
 
@@ -318,8 +409,8 @@ function renderVirtualizedTree(rootNode) {
   renderState.endIndex = endIndex;
   renderState.totalCount = totalCount;
 
-  containerEl.textContent = "";
-  containerEl.appendChild(topSpacerEl);
+  rowsEl.textContent = "";
+  rowsEl.appendChild(topSpacerEl);
 
   for (let index = startIndex; index < endIndex; index += 1) {
     const node = visibleNodes[index];
@@ -328,12 +419,12 @@ function renderVirtualizedTree(rootNode) {
     }
 
     node.el.classList.remove(classes.HIDDEN);
-    containerEl.appendChild(node.el);
+    rowsEl.appendChild(node.el);
   }
 
-  containerEl.appendChild(bottomSpacerEl);
+  rowsEl.appendChild(bottomSpacerEl);
 
-  const firstLine = containerEl.querySelector(".line");
+  const firstLine = rowsEl.querySelector(".line");
   if (firstLine) {
     const measuredHeight = firstLine.getBoundingClientRect().height;
     if (measuredHeight > 0) {
@@ -347,10 +438,18 @@ function initVirtualization(rootNode, containerEl, options = {}) {
     Number.isInteger(options.overscanRows) && options.overscanRows >= 0
       ? options.overscanRows
       : DEFAULT_OVERSCAN_ROWS;
+  const showScrollPath = options.showScrollPath !== false;
   const topSpacerEl = createVirtualSpacer();
   const bottomSpacerEl = createVirtualSpacer();
+  const breadcrumbEl = showScrollPath ? createBreadcrumbElement() : null;
+  const rowsEl = createVirtualRowsElement();
   const viewportEl = resolveViewportElement(containerEl, options);
   const handleViewportChange = () => scheduleVirtualRender(rootNode);
+
+  if (breadcrumbEl) {
+    containerEl.appendChild(breadcrumbEl);
+  }
+  containerEl.appendChild(rowsEl);
 
   viewportEl.addEventListener("scroll", handleViewportChange);
 
@@ -370,6 +469,10 @@ function initVirtualization(rootNode, containerEl, options = {}) {
     virtualize: true,
     containerEl,
     viewportEl,
+    showScrollPath,
+    breadcrumbEl,
+    breadcrumbPath: "",
+    rowsEl,
     topSpacerEl,
     bottomSpacerEl,
     overscanRows,
@@ -649,6 +752,7 @@ export function create(jsonData, options = {}) {
  * @param {object} options
  * @param {boolean} options.showValueType - true adds type label before leaf value
  * @param {boolean} options.virtualize - true renders only viewport rows
+ * @param {boolean} options.showScrollPath - true shows sticky path for top visible row (virtualize mode)
  * @param {number} options.overscanRows - extra rows above/below viewport
  * @param {HTMLElement} options.viewportElement - external scroll container for virtualization
  * @return {object} tree
@@ -667,6 +771,7 @@ export function renderJSON(jsonData, targetElement, options = {}) {
  * @param {HTMLElement} targetElement
  * @param {object} options
  * @param {boolean} options.virtualize
+ * @param {boolean} options.showScrollPath
  * @param {number} options.overscanRows
  * @param {HTMLElement} options.viewportElement
  */

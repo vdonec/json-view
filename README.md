@@ -74,6 +74,7 @@ jsonview.destroy(tree);
 tree = jsonview.renderJSON(data, root, {
   defaultExpanded: true,
   virtualize: true,
+  showScrollPath: true,
   overscanRows: 8,
   viewportElement: root, // external scroll container (e.g. #root with overflow:auto)
 });
@@ -115,10 +116,12 @@ When `true`, adds a type label (e.g. `string`, `number`, `object`, `array`) befo
 ### Virtualization options
 
 Virtualization keeps only the rows currently visible in the scroll container in the DOM. This is essential for large JSON payloads with thousands of nodes.
+In virtualized mode, the container also shows a sticky breadcrumb at the top with the path of the current top visible row. Segments are visually separated with a caret icon, and if the top visible row is a leaf node, its last segment is omitted (for example: `object > data > items > 0 > payload` becomes `object > data > items > 0`).
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `virtualize` | `boolean` | `false` | Enable virtualized rendering |
+| `showScrollPath` | `boolean` | `true` | Show/hide sticky breadcrumb path for the current top visible row |
 | `overscanRows` | `number` | `8` | Extra rows rendered above and below the visible area for smoother scrolling |
 | `viewportElement` | `HTMLElement` | `.json-container` | The scroll container used to calculate visible rows |
 
@@ -134,6 +137,7 @@ By default the library listens for scroll on its own `.json-container`. If your 
 const root = document.querySelector("#root");
 jsonview.renderJSON(data, root, {
   virtualize: true,
+  showScrollPath: true,
   viewportElement: root,
 });
 ```
@@ -161,6 +165,7 @@ Call `destroy(tree)` before rendering another tree into the same target.
 | Option | Type | Description |
 |---|---|---|
 | `virtualize` | `boolean` | Enable virtualized rendering |
+| `showScrollPath` | `boolean` | Show/hide sticky breadcrumb path in virtualized mode |
 | `overscanRows` | `number` | Extra rows above/below viewport |
 | `viewportElement` | `HTMLElement` | External scroll container |
 
