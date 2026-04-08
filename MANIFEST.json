@@ -1,6 +1,6 @@
 {
   "name": "@vdonec/json-view",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A small JavaScript library to display JSON data as an expandable tree in the DOM",
   "homepage": "https://github.com/vdonec/json-view",
   "repository": "https://github.com/vdonec/json-view",
