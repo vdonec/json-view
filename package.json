@@ -19,6 +19,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "cdn-demo": "npx http-server . --root . --open cdn-demo.html --port 8080",
     "build": "vite build && node ./scripts/copy-types.mjs",
     "build:demo": "vite build --config vite.config.demo.js",
     "preview": "vite preview",

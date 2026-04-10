@@ -1,4 +1,4 @@
-name: Build and Deploy Demo
+name: Build and Deploy Demos
 
 on:
   push:
@@ -32,11 +32,17 @@ jobs:
       - name: Build demo
         run: npm run build:demo
 
+      - name: Prepare Pages artifact (demo + CDN demo)
+        run: |
+          mkdir -p pages-dist
+          cp -R demo-dist/. pages-dist/
+          cp cdn-demo.html pages-dist/cdn-demo.html
+
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./demo-dist
+          publish_dir: ./pages-dist
           enable_jekyll: false
 

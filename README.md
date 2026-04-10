@@ -44,6 +44,45 @@ Build output is written to `dist/`:
 npm install @vdonec/json-view
 ```
 
+## Install from CDN
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.css">
+<script type="module">
+  import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.js";
+  window.jsonview = jsonview;
+</script>
+```
+
+The library can be loaded as an ES module from CDN:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.js";
+    const data = {
+      name: "json-view",
+      version: "2.x",
+      features: ["render", "expand", "collapse", "virtualize"],
+    };
+    
+    const tree = jsonview.renderJSON(data, document.querySelector("#root"), {
+      defaultExpanded: true,
+      virtualize: true,
+      showScrollPath: true,
+      enableScrollPathNavigation: true,
+    });
+  </script>
+</body>
+</html>
+```
+
 ## Usage
 
 ```javascript
