@@ -53,8 +53,9 @@
 
         .option-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 8px 12px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
         }
 
         .option-item {
@@ -63,6 +64,15 @@
             gap: 8px;
             color: #344054;
             font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid #eaecf0;
+            border-radius: 8px;
+            background: #fcfcfd;
+        }
+
+        .option-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
         }
 
         .option-item input[type="number"] {
@@ -71,6 +81,20 @@
             border-radius: 6px;
             padding: 4px 6px;
             font-size: 14px;
+        }
+
+        .option-item.number {
+            justify-content: space-between;
+        }
+
+        .option-item .label-text {
+            color: #344054;
+        }
+
+        .settings-note {
+            margin-top: 4px;
+            color: #667085;
+            font-size: 12px;
         }
 
         .option-note {
@@ -112,13 +136,15 @@
         fieldset {
             border: 1px solid #e4e7ec;
             border-radius: 8px;
-            padding: 6px 8px !important;
+            padding: 12px !important;
+            background: #fff;
         }
 
         fieldset legend {
             font-size: 14px;
             color: #344054;
             padding: 0 6px;
+            font-weight: 600;
         }
     </style>
   <script type="module" crossorigin src="/json-view/assets/index-BORJ5yWI.js"></script>
@@ -139,44 +165,45 @@
 
         <fieldset>
             <legend>Options are applied automatically when controls change.</legend>
+            <p class="settings-note">Tip: disable virtualization to render the full tree, or tune overscan for smoother scrolling.</p>
             <div class="option-grid">
                 <label class="option-item" for="opt-show-value-type">
                     <input id="opt-show-value-type" type="checkbox" checked/>
-                    <span>showValueType</span>
+                    <span class="label-text">showValueType</span>
                 </label>
 
                 <label class="option-item" for="opt-virtualize">
                     <input id="opt-virtualize" type="checkbox" checked/>
-                    <span>virtualize</span>
+                    <span class="label-text">virtualize</span>
                 </label>
 
                 <label class="option-item" for="opt-show-scroll-path">
                     <input id="opt-show-scroll-path" type="checkbox" checked/>
-                    <span>showScrollPath</span>
+                    <span class="label-text">showScrollPath</span>
                 </label>
 
                 <label class="option-item" for="opt-enable-scroll-path-navigation">
                     <input id="opt-enable-scroll-path-navigation" type="checkbox" checked/>
-                    <span>enableScrollPathNavigation</span>
+                    <span class="label-text">enableScrollPathNavigation</span>
                 </label>
 
                 <label class="option-item" for="opt-default-expanded-all">
                     <input id="opt-default-expanded-all" type="checkbox"/>
-                    <span>defaultExpanded = true (expand all)</span>
+                    <span class="label-text">defaultExpanded = true (expand all)</span>
                 </label>
 
                 <label class="option-item" for="opt-default-expanded-enabled">
                     <input id="opt-default-expanded-enabled" type="checkbox" checked/>
-                    <span>enable defaultExpanded option</span>
+                    <span class="label-text">enable defaultExpanded option</span>
                 </label>
 
-                <label class="option-item" for="opt-default-expanded-depth">
-                    <span>defaultExpanded depth</span>
+                <label class="option-item number" for="opt-default-expanded-depth">
+                    <span class="label-text">defaultExpanded depth</span>
                     <input id="opt-default-expanded-depth" type="number" min="0" step="1" value="0"/>
                 </label>
 
-                <label class="option-item" for="opt-overscan-rows">
-                    <span>overscanRows</span>
+                <label class="option-item number" for="opt-overscan-rows">
+                    <span class="label-text">overscanRows</span>
                     <input id="opt-overscan-rows" type="number" min="0" step="1" value="8"/>
                 </label>
             </div>
