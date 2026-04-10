@@ -11,6 +11,7 @@ const selectors = {
   showValueType: "#opt-show-value-type",
   virtualize: "#opt-virtualize",
   showScrollPath: "#opt-show-scroll-path",
+  enableScrollPathNavigation: "#opt-enable-scroll-path-navigation",
   defaultExpandedAll: "#opt-default-expanded-all",
   defaultExpandedEnabled: "#opt-default-expanded-enabled",
   defaultExpandedDepth: "#opt-default-expanded-depth",
@@ -33,6 +34,7 @@ function getRenderOptions() {
   const showValueTypeEl = document.querySelector(selectors.showValueType);
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
+  const enableScrollPathNavigationEl = document.querySelector(selectors.enableScrollPathNavigation);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
@@ -56,6 +58,9 @@ function getRenderOptions() {
 
   if (options.virtualize) {
     options.showScrollPath = showScrollPathEl ? showScrollPathEl.checked : true;
+    options.enableScrollPathNavigation = enableScrollPathNavigationEl
+      ? enableScrollPathNavigationEl.checked
+      : true;
     options.overscanRows = parseNonNegativeInt(overscanRowsEl ? overscanRowsEl.value : "8", 8);
     options.viewportElement = state.rootEl;
   }
@@ -66,6 +71,7 @@ function getRenderOptions() {
 function syncOptionControlsState() {
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
+  const enableScrollPathNavigationEl = document.querySelector(selectors.enableScrollPathNavigation);
   const overscanRowsEl = document.querySelector(selectors.overscanRows);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
@@ -77,6 +83,10 @@ function syncOptionControlsState() {
 
   if (overscanRowsEl && virtualizeEl) {
     overscanRowsEl.disabled = !virtualizeEl.checked;
+  }
+
+  if (enableScrollPathNavigationEl && virtualizeEl && showScrollPathEl) {
+    enableScrollPathNavigationEl.disabled = !virtualizeEl.checked || !showScrollPathEl.checked;
   }
 
   if (defaultExpandedDepthEl && defaultExpandedEnabledEl && defaultExpandedAllEl) {
@@ -195,6 +205,7 @@ function bindControls() {
   const showValueTypeEl = document.querySelector(selectors.showValueType);
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
+  const enableScrollPathNavigationEl = document.querySelector(selectors.enableScrollPathNavigation);
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
@@ -248,6 +259,7 @@ function bindControls() {
     showValueTypeEl,
     virtualizeEl,
     showScrollPathEl,
+    enableScrollPathNavigationEl,
     defaultExpandedAllEl,
     defaultExpandedEnabledEl,
     defaultExpandedDepthEl,

@@ -350,5 +350,134 @@ test("breadcrumb omits trailing leaf segment with external viewportElement", asy
   delete globalThis.document;
 });
 
+test("clicking breadcrumb segment scrolls to selected path node", async () => {
+  const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
+    pretendToBeVisual: true,
+  });
+
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+
+  const root = window.document.querySelector("#root");
+  const data = {
+    data: {
+      items: [
+        {
+          payload: "leaf-value",
+          meta: { id: 1 },
+        },
+      ],
+    },
+  };
+
+  const tree = renderJSON(data, root, {
+    defaultExpanded: true,
+    virtualize: true,
+    overscanRows: 0,
+  });
+
+  const container = root.querySelector(".json-container");
+  assert.ok(container, "json container should exist");
+
+  Object.defineProperty(container, "clientHeight", {
+    value: 24,
+    configurable: true,
+  });
+
+  window.dispatchEvent(new window.Event("resize"));
+  await waitForVirtualization(window);
+
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist");
+
+  container.scrollTop = 96;
+  container.dispatchEvent(new window.Event("scroll"));
+  await waitForVirtualization(window);
+
+  const beforeClickScrollTop = container.scrollTop;
+  const dataSegment = Array.from(breadcrumb.querySelectorAll(".json-breadcrumb-segment")).find(
+    (segment) => segment.textContent === "data",
+  );
+  assert.ok(dataSegment, "data segment should exist in breadcrumb");
+
+  dataSegment.click();
+  await waitForVirtualization(window);
+
+  assert.ok(container.scrollTop < beforeClickScrollTop, "click should scroll up to selected breadcrumb node");
+  assert.equal(
+    breadcrumb.getAttribute("data-path"),
+    "object > data",
+    "breadcrumb should update to clicked path node",
+  );
+
+  destroy(tree);
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
+test("breadcrumb click does not scroll when enableScrollPathNavigation=false", async () => {
+  const dom = new JSDOM("<!doctype html><html><body><div id=\"root\"></div></body></html>", {
+    pretendToBeVisual: true,
+  });
+
+  const { window } = dom;
+  globalThis.window = window;
+  globalThis.document = window.document;
+
+  const root = window.document.querySelector("#root");
+  const data = {
+    data: {
+      items: [
+        {
+          payload: "leaf-value",
+          meta: { id: 1 },
+        },
+      ],
+    },
+  };
+
+  const tree = renderJSON(data, root, {
+    defaultExpanded: true,
+    virtualize: true,
+    overscanRows: 0,
+    enableScrollPathNavigation: false,
+  });
+
+  const container = root.querySelector(".json-container");
+  assert.ok(container, "json container should exist");
+
+  Object.defineProperty(container, "clientHeight", {
+    value: 24,
+    configurable: true,
+  });
+
+  window.dispatchEvent(new window.Event("resize"));
+  await waitForVirtualization(window);
+
+  const breadcrumb = container.querySelector(".json-breadcrumb");
+  assert.ok(breadcrumb, "breadcrumb should exist");
+
+  container.scrollTop = 96;
+  container.dispatchEvent(new window.Event("scroll"));
+  await waitForVirtualization(window);
+
+  const dataSegment = Array.from(breadcrumb.querySelectorAll(".json-breadcrumb-segment")).find(
+    (segment) => segment.textContent === "data",
+  );
+  assert.ok(dataSegment, "data segment should exist in breadcrumb");
+  assert.equal(dataSegment.disabled, true, "breadcrumb segments should be disabled when navigation is off");
+
+  const scrollBeforeClick = container.scrollTop;
+  dataSegment.click();
+  await waitForVirtualization(window);
+
+  assert.equal(container.scrollTop, scrollBeforeClick, "breadcrumb click should not change scroll position");
+
+  destroy(tree);
+  delete globalThis.window;
+  delete globalThis.document;
+});
+
 
 
