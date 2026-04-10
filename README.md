@@ -8,6 +8,8 @@ A small JavaScript library to display JSON data as an expandable tree in the DOM
 
 Try the interactive demo: **https://vdonec.github.io/json-view/**
 
+CDN demo page: **https://vdonec.github.io/json-view/cdn-demo.html**
+
 The demo lets you:
 - Load example JSON or generate large test data
 - Toggle rendering options (`defaultExpanded`, `showValueType`, `virtualize`, `overscanRows`)
