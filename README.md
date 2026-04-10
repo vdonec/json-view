@@ -11,6 +11,7 @@ Try the interactive demo: **https://vdonec.github.io/json-view/**
 The demo lets you:
 - Load example JSON or generate large test data
 - Toggle rendering options (`defaultExpanded`, `showValueType`, `virtualize`, `overscanRows`)
+- Toggle breadcrumb navigation (`showScrollPath`, `enableScrollPathNavigation`)
 - Expand/collapse nodes and inspect statistics
 - Test virtualization performance with thousands of nodes
 
@@ -51,7 +52,7 @@ import jsonview from "@vdonec/json-view";
 
 const data = {
   name: "json-view",
-  version: "1.x",
+  version: "2.x",
   features: ["render", "expand", "collapse", "virtualize"],
 };
 
@@ -75,6 +76,7 @@ tree = jsonview.renderJSON(data, root, {
   defaultExpanded: true,
   virtualize: true,
   showScrollPath: true,
+  enableScrollPathNavigation: true,
   overscanRows: 8,
   viewportElement: root, // external scroll container (e.g. #root with overflow:auto)
 });
@@ -116,12 +118,15 @@ When `true`, adds a type label (e.g. `string`, `number`, `object`, `array`) befo
 ### Virtualization options
 
 Virtualization keeps only the rows currently visible in the scroll container in the DOM. This is essential for large JSON payloads with thousands of nodes.
-In virtualized mode, the container also shows a sticky breadcrumb at the top with the path of the current top visible row. Segments are visually separated with a caret icon, and if the top visible row is a leaf node, its last segment is omitted (for example: `object > data > items > 0 > payload` becomes `object > data > items > 0`).
+In virtualized mode, the container shows a sticky breadcrumb at the top with the path of the current top visible row. Segments are visually separated with a caret icon (🔽 / ▶️). If the top visible row is a leaf node, its last segment is omitted (for example: `object > data > items > 0 > payload` becomes `object > data > items > 0`).
+
+By default, breadcrumb segments are clickable — clicking a segment scrolls the view to that path node. This behavior can be disabled with `enableScrollPathNavigation: false`.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `virtualize` | `boolean` | `false` | Enable virtualized rendering |
 | `showScrollPath` | `boolean` | `true` | Show/hide sticky breadcrumb path for the current top visible row |
+| `enableScrollPathNavigation` | `boolean` | `true` | Enable click-to-scroll on breadcrumb path segments |
 | `overscanRows` | `number` | `8` | Extra rows rendered above and below the visible area for smoother scrolling |
 | `viewportElement` | `HTMLElement` | `.json-container` | The scroll container used to calculate visible rows |
 
@@ -166,6 +171,7 @@ Call `destroy(tree)` before rendering another tree into the same target.
 |---|---|---|
 | `virtualize` | `boolean` | Enable virtualized rendering |
 | `showScrollPath` | `boolean` | Show/hide sticky breadcrumb path in virtualized mode |
+| `enableScrollPathNavigation` | `boolean` | Enable click-to-scroll on breadcrumb segments |
 | `overscanRows` | `number` | Extra rows above/below viewport |
 | `viewportElement` | `HTMLElement` | External scroll container |
 
