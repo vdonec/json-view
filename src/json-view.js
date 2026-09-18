@@ -14,6 +14,9 @@ const classes = {
   BREADCRUMB_SEGMENT: "json-breadcrumb-segment",
   VIRTUAL_SPACER: "json-virtual-spacer",
   VIRTUAL_ROWS: "json-virtual-rows",
+  VALUE: "json-value",
+  VALUE_INPUT: "json-value-input",
+  EDITABLE: "json-editable",
 };
 
 const DEFAULT_LINE_HEIGHT = 24;
@@ -106,6 +109,8 @@ function ensureChildren(node) {
       depth: childDepth,
       type: childType,
       showValueType: node.showValueType,
+      editable: node.editable,
+      onEdit: node.onEdit,
       isExpanded: shouldExpandByDepth(childDepth, node.expandDepthLimit),
       defaultExpanded: node.defaultExpanded,
       expandDepthLimit: node.expandDepthLimit,
@@ -694,6 +699,183 @@ export function toggleNode(node) {
   }
 }
 
+function getSizeString(node) {
+  const len = node.childCount;
+  if (node.type === "array") return `[${len}]`;
+  if (node.type === "object") return `{${len}}`;
+
+  return null;
+}
+
+function getValueString(node) {
+  switch (node.type) {
+    case "string":
+      return node.value ? `${node.value}` : '""';
+
+    case "number":
+    case "boolean":
+    case "null":
+      return `${node.value}`;
+
+    case "array":
+      return `[${node.childCount}]`;
+
+    case "object":
+      return `{${node.childCount}}`;
+
+    default:
+      return `${node.value}`;
+  }
+}
+
+function getValueClassName(node) {
+  switch (node.type) {
+    case "string":
+    case "number":
+    case "boolean":
+    case "null":
+    case "array":
+    case "object":
+      return `json-${node.type}`;
+    default:
+      return `json-${typeof node.value}`;
+  }
+}
+
+// Only string/number/boolean values can be edited; structural edits (keys, type changes) are out of scope.
+// Checked by node.type rather than "not expandable": an empty object/array has no children (hasChildren
+// is false, same as a real leaf), but it is still an object/array and must never become editable text.
+function isNodeEditable(node) {
+  return (
+    node.editable === true &&
+    (node.type === "string" || node.type === "number" || node.type === "boolean")
+  );
+}
+
+function renderNodeValue(node) {
+  if (!node.el) {
+    return;
+  }
+
+  const valueEl = node.el.querySelector("." + classes.VALUE);
+  if (valueEl) {
+    valueEl.textContent = getValueString(node);
+  }
+}
+
+function parseEditedValue(type, rawText) {
+  if (type === "number") {
+    const trimmed = rawText.trim();
+    const parsed = Number(trimmed);
+    if (trimmed === "" || Number.isNaN(parsed)) {
+      return { valid: false };
+    }
+    return { valid: true, value: parsed };
+  }
+
+  if (type === "boolean") {
+    if (rawText === "true") return { valid: true, value: true };
+    if (rawText === "false") return { valid: true, value: false };
+    return { valid: false };
+  }
+
+  if (type === "string") {
+    return { valid: true, value: rawText };
+  }
+
+  // object / array / null: never editable as text, regardless of how commitEdit is reached.
+  return { valid: false };
+}
+
+function commitEdit(node, rawText) {
+  const result = parseEditedValue(node.type, rawText);
+
+  if (!result.valid) {
+    renderNodeValue(node);
+    return;
+  }
+
+  const oldValue = node.value;
+  const newValue = result.value;
+
+  node.value = newValue;
+  if (node.parent && node.parent.value && node.key !== null && node.key !== undefined) {
+    node.parent.value[node.key] = newValue;
+  }
+
+  renderNodeValue(node);
+
+  if (typeof node.onEdit === "function" && oldValue !== newValue) {
+    node.onEdit(node, newValue, oldValue);
+  }
+}
+
+function startEdit(node) {
+  if (!isNodeEditable(node) || !node.el || node.isEditing) {
+    return;
+  }
+
+  const valueEl = node.el.querySelector("." + classes.VALUE);
+  if (!valueEl) {
+    return;
+  }
+
+  node.isEditing = true;
+
+  const input = element("input");
+  input.type = "text";
+  input.className = classes.VALUE_INPUT;
+  input.value = String(node.value);
+
+  const finishEdit = (commit) => {
+    if (!node.isEditing) {
+      return;
+    }
+
+    node.isEditing = false;
+    input.removeEventListener("keydown", onKeydown);
+    input.removeEventListener("blur", onBlur);
+
+    if (commit) {
+      commitEdit(node, input.value);
+    } else {
+      renderNodeValue(node);
+    }
+  };
+
+  const onKeydown = (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      finishEdit(true);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      finishEdit(false);
+    }
+  };
+
+  const onBlur = () => finishEdit(true);
+
+  input.addEventListener("keydown", onKeydown);
+  input.addEventListener("blur", onBlur);
+
+  valueEl.textContent = "";
+  valueEl.appendChild(input);
+  input.focus();
+  input.select();
+}
+
+// Node elements are cached and reused (including across virtualized scroll), so listeners accumulate
+// over the node's lifetime rather than being re-attached per render; chain disposers instead of overwriting.
+function addDispose(node, disposeFn) {
+  const previousDispose = node.dispose;
+  node.dispose = () => {
+    if (previousDispose) {
+      previousDispose();
+    }
+    disposeFn();
+  };
+}
+
 /**
  * Create node html element
  * @param {object} node
@@ -701,49 +883,6 @@ export function toggleNode(node) {
  */
 function createNodeElement(node) {
   let el = element("div");
-
-  const getSizeString = (node) => {
-    const len = node.childCount;
-    if (node.type === "array") return `[${len}]`;
-    if (node.type === "object") return `{${len}}`;
-
-    return null;
-  };
-
-  const getValueString = (node) => {
-    switch (node.type) {
-      case "string":
-        return node.value ? `${node.value}` : '""';
-
-      case "number":
-      case "boolean":
-      case "null":
-        return `${node.value}`;
-
-      case "array":
-        return `[${node.childCount}]`;
-
-      case "object":
-        return `{${node.childCount}}`;
-
-      default:
-        return `${node.value}`;
-    }
-  };
-
-  const getValueClassName = (node) => {
-    switch (node.type) {
-      case "string":
-      case "number":
-      case "boolean":
-      case "null":
-      case "array":
-      case "object":
-        return `json-${node.type}`;
-      default:
-        return `json-${typeof node.value}`;
-    }
-  };
 
   if (isNodeExpandable(node)) {
     el.innerHTML = expandedTemplate({
@@ -754,7 +893,7 @@ function createNodeElement(node) {
       showValueType: node.showValueType,
     });
     const caretEl = el.querySelector("." + classes.CARET_ICON);
-    node.dispose = listen(caretEl, "click", () => toggleNode(node));
+    addDispose(node, listen(caretEl, "click", () => toggleNode(node)));
   } else {
     el.innerHTML = notExpandedTemplate({
       key: node.key,
@@ -763,6 +902,14 @@ function createNodeElement(node) {
       valueType: node.type,
       showValueType: node.showValueType,
     });
+
+    if (isNodeEditable(node)) {
+      const valueEl = el.querySelector("." + classes.VALUE);
+      if (valueEl) {
+        valueEl.classList.add(classes.EDITABLE);
+        addDispose(node, listen(valueEl, "dblclick", () => startEdit(node)));
+      }
+    }
   }
 
   const lineEl = el.children[0];
@@ -822,6 +969,9 @@ function createNode(opt = {}) {
     defaultExpanded: opt.defaultExpanded || false,
     type,
     showValueType: opt.showValueType === true,
+    editable: opt.editable === true,
+    onEdit: typeof opt.onEdit === "function" ? opt.onEdit : null,
+    isEditing: false,
     hasChildren: childCount > 0,
     childCount,
     children: opt.children || [],
@@ -860,6 +1010,8 @@ function getJsonObject(data) {
  * @param {object} options
  * @param {boolean | number} options.defaultExpanded - true expands all nodes; number expands nodes up to that depth (root = 0)
  * @param {boolean} options.showValueType - true adds type label before leaf value
+ * @param {boolean} options.editable - true allows double-click editing of leaf values (string/number/boolean)
+ * @param {(node: object, newValue: *, oldValue: *) => void} [options.onEdit] - called after a leaf value edit is committed
  * @return {object}
  */
 export function create(jsonData, options = {}) {
@@ -867,11 +1019,15 @@ export function create(jsonData, options = {}) {
   const defaultExpanded = options.defaultExpanded === true;
   const expandDepthLimit = getExpandDepthLimit(options.defaultExpanded);
   const showValueType = options.showValueType === true;
+  const editable = options.editable === true;
+  const onEdit = typeof options.onEdit === "function" ? options.onEdit : null;
   const rootNode = createNode({
     value: parsedData,
     key: getDataType(parsedData),
     type: getDataType(parsedData),
     showValueType,
+    editable,
+    onEdit,
     isExpanded: shouldExpandByDepth(0, expandDepthLimit),
     defaultExpanded,
     expandDepthLimit,

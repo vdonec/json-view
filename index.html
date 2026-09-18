@@ -146,6 +146,25 @@
             padding: 0 6px;
             font-weight: 600;
         }
+
+        .raw-json-section {
+            margin-top: 16px;
+        }
+
+        .raw-json-output {
+            max-height: 30vh;
+            overflow: auto;
+            margin: 6px 0 0;
+            padding: 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            background: #101828;
+            color: #d0d5dd;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
     </style>
 </head>
 <body>
@@ -159,6 +178,7 @@
             <button id="btn-load-example" type="button">Load example2.json</button>
             <button id="btn-expand-all" type="button">Expand all</button>
             <button id="btn-collapse-all" type="button">Collapse all</button>
+            <button id="btn-save-json" type="button" hidden>Save edited JSON</button>
         </div>
 
         <fieldset>
@@ -168,6 +188,11 @@
                 <label class="option-item" for="opt-show-value-type">
                     <input id="opt-show-value-type" type="checkbox" checked/>
                     <span class="label-text">showValueType</span>
+                </label>
+
+                <label class="option-item" for="opt-editable">
+                    <input id="opt-editable" type="checkbox"/>
+                    <span class="label-text">editable (double-click a leaf value)</span>
                 </label>
 
                 <label class="option-item" for="opt-virtualize">
@@ -213,6 +238,11 @@
         </div>
 
         <div id="root"></div>
+
+        <div class="raw-json-section" id="raw-json-section" hidden>
+            <p class="option-note">Snapshot of the tree's current data (<code>tree.value</code>) at the moment "Save edited JSON" was clicked. This does not update live as you keep editing.</p>
+            <pre id="raw-json-output" class="raw-json-output"></pre>
+        </div>
     </section>
 </main>
 

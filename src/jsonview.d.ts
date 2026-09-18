@@ -6,6 +6,9 @@ export interface JsonViewNode {
   defaultExpanded: boolean;
   type: string;
   showValueType: boolean;
+  editable: boolean;
+  onEdit: ((node: JsonViewNode, newValue: unknown, oldValue: unknown) => void) | null;
+  isEditing: boolean;
   hasChildren: boolean;
   childCount: number;
   children: JsonViewNode[];
@@ -22,6 +25,10 @@ export type JsonInput = string | number | boolean | null | object;
 export interface CreateOptions {
   defaultExpanded?: boolean | number;
   showValueType?: boolean;
+  /** Allow double-click editing of leaf values (string/number/boolean). Objects, arrays and null are not editable. */
+  editable?: boolean;
+  /** Called after a leaf value edit is committed. */
+  onEdit?: (node: JsonViewNode, newValue: unknown, oldValue: unknown) => void;
 }
 
 export interface RenderOptions {

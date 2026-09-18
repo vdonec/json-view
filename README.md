@@ -49,9 +49,9 @@ npm install @vdonec/json-view
 ## Install from CDN
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.css">
 <script type="module">
-  import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.js";
+  import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.js";
   window.jsonview = jsonview;
 </script>
 ```
@@ -62,12 +62,12 @@ The library can be loaded as an ES module from CDN:
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.css">
 </head>
 <body>
   <div id="root"></div>
   <script type="module">
-    import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.js";
+    import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.js";
     const data = {
       name: "json-view",
       version: "2.x",
@@ -156,6 +156,23 @@ Non-integer or negative values are treated as collapsed-by-default.
 
 When `true`, adds a type label (e.g. `string`, `number`, `object`, `array`) before each rendered node value.
 
+### `editable` — `boolean` (default: `false`)
+
+When `true`, leaf values (`string`, `number`, `boolean`) can be edited in place: double-click a value to turn it into a text input, press `Enter` or click away to commit, press `Escape` to cancel. `object`, `array`, and `null` values are never editable (structural edits are not supported).
+
+Committed edits mutate the underlying data in place — the object/array you originally passed to `create`/`renderJSON` is updated (`tree.value` for the root, or the corresponding key/index in its parent). Invalid input for a typed field (e.g. non-numeric text for a `number`, anything other than `true`/`false` for a `boolean`) is rejected and the previous value is restored.
+
+Use `onEdit(node, newValue, oldValue)` to react to committed edits:
+
+```javascript
+jsonview.renderJSON(data, root, {
+  editable: true,
+  onEdit: (node, newValue, oldValue) => {
+    console.log(`${node.key}: ${oldValue} -> ${newValue}`);
+  },
+});
+```
+
 ### Virtualization options
 
 Virtualization keeps only the rows currently visible in the scroll container in the DOM. This is essential for large JSON payloads with thousands of nodes.
@@ -200,6 +217,8 @@ Parses `jsonData` (JSON string or any JSON-compatible value) and returns a tree 
 |---|---|---|
 | `defaultExpanded` | `boolean \| number` | See [Options](#options) |
 | `showValueType` | `boolean` | See [Options](#options) |
+| `editable` | `boolean` | See [Options](#options) |
+| `onEdit` | `(node, newValue, oldValue) => void` | Called after a leaf value edit is committed |
 
 ### `render(tree, targetElement, options)`
 
@@ -250,7 +269,7 @@ This library prioritizes security:
 - **Zero runtime dependencies** — No external dependencies to audit
 - **Minimal footprint** — Only what's needed for JSON rendering
 - **Safe text rendering** — Escapes untrusted JSON-derived text before injecting UI markup
-- **Regression coverage** — `test/xss-regression.test.js` ensures untrusted keys/values render as text, never as executable HTML
+- **Regression coverage** — `test/xss-regression.test.js` ensures untrusted keys/values render as text, never as executable HTML; `test/editing.test.js` covers the same guarantee for values entered through `editable` mode
 - **No code execution** — Simply renders data, never evaluates it
 
 For security policies and reporting vulnerabilities, see [SECURITY.md](./SECURITY.md).
@@ -270,6 +289,7 @@ json-view/
   test/
     xss-regression.test.js # security regression tests
     virtualization.test.js # virtualization tests
+    editing.test.js        # in-place value editing tests
   dist/                    # build output (generated)
 ```
 

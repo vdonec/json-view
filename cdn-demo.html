@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>json-view CDN Demo</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.css" />
   <style>
     * {
       margin: 0;
@@ -275,10 +275,36 @@
       <div id="demo4" style="max-height: 300px; border: 1px solid #d0d5dd; border-radius: 8px; overflow: auto; margin-top: 12px;"></div>
       <div class="status" id="status4"></div>
     </div>
+
+    <!-- Example 5: Editing -->
+    <div class="panel">
+      <div class="section-title">Example 5: Editing Values</div>
+      <div class="info-box">
+        Requires <code>@vdonec/json-view@2.1.0</code> or later (the <code>editable</code> option). This
+        page's CDN link at the top already points to <code>2.1.0</code>, but until that version is
+        actually published to npm, jsdelivr won't be able to resolve it and the library script above
+        will fail to load — double-clicking a value below won't do anything until then.
+      </div>
+      <p style="font-size: 13px; margin-bottom: 12px;">
+        Double-click a leaf value (<code>string</code> / <code>number</code> / <code>boolean</code>) to
+        edit it in place. Press <code>Enter</code> or click away to commit, <code>Escape</code> to
+        cancel. Objects, arrays and <code>null</code> are never editable. Edits mutate the data object
+        passed to <code>renderJSON</code> directly (<code>tree.value</code>) — they are not
+        auto-saved anywhere on their own, which is what the "Save edited JSON" button below
+        demonstrates.
+      </p>
+      <div class="button-group">
+        <button onclick="renderEditable()">Render Editable JSON</button>
+        <button onclick="saveEditableJson()">Save edited JSON</button>
+      </div>
+      <div id="demo5" style="max-height: 300px; border: 1px solid #d0d5dd; border-radius: 8px; overflow: auto; margin-top: 12px;"></div>
+      <div class="status" id="status5"></div>
+      <pre id="demo5-output" class="example-json" style="display: none; margin-top: 12px;"></pre>
+    </div>
   </main>
 
   <script type="module">
-    import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.0.3/dist/jsonview.js";
+    import jsonview from "https://cdn.jsdelivr.net/npm/@vdonec/json-view@2.1.0/dist/jsonview.js";
     window.jsonview = jsonview;
 
     let trees = {};
@@ -306,7 +332,7 @@
       cleanupDemo("demo1");
       const data = {
         name: "json-view",
-        version: "2.0.3",
+        version: "2.1.0",
         repository: "https://github.com/vdonec/json-view",
         features: ["render", "expand", "collapse", "virtualize"],
         stats: { downloads: 1000, stars: 50 },
@@ -404,6 +430,50 @@
       } catch (e) {
         setStatus("status4", "✗ JSON Parse Error: " + e.message, "error");
       }
+    }
+
+    window.renderEditable = function renderEditable() {
+      cleanupDemo("demo5");
+      const outputEl = document.getElementById("demo5-output");
+      if (outputEl) {
+        outputEl.style.display = "none";
+      }
+
+      const data = {
+        user: "Alice",
+        age: 30,
+        active: true,
+        role: "admin",
+      };
+
+      try {
+        trees["demo5"] = jsonview.renderJSON(data, document.getElementById("demo5"), {
+          defaultExpanded: true,
+          showValueType: true,
+          editable: true,
+          onEdit: (node, newValue, oldValue) => {
+            setStatus("status5", `✓ ${node.key}: ${oldValue} → ${newValue}`);
+          },
+        });
+        setStatus("status5", "✓ Rendered. Double-click a value to edit it.");
+      } catch (e) {
+        setStatus("status5", "✗ Error: " + e.message, "error");
+      }
+    }
+
+    window.saveEditableJson = function saveEditableJson() {
+      const tree = trees["demo5"];
+      const outputEl = document.getElementById("demo5-output");
+      if (!tree || !outputEl) {
+        setStatus("status5", "✗ Render the JSON first", "error");
+        return;
+      }
+
+      // tree.value is the same object graph passed to renderJSON; editable-mode edits
+      // mutate it directly, so this reflects the current, edited state.
+      outputEl.textContent = JSON.stringify(tree.value, null, 2);
+      outputEl.style.display = "block";
+      setStatus("status5", "✓ Current tree data saved as raw JSON below.");
     }
 
     // Auto-render first example on page load

@@ -8,7 +8,11 @@ const selectors = {
   collapse: "#btn-collapse-all",
   generateLarge: "#btn-generate-large",
   loadExample: "#btn-load-example",
+  saveJson: "#btn-save-json",
+  rawJsonSection: "#raw-json-section",
+  rawJsonOutput: "#raw-json-output",
   showValueType: "#opt-show-value-type",
+  editable: "#opt-editable",
   virtualize: "#opt-virtualize",
   showScrollPath: "#opt-show-scroll-path",
   enableScrollPathNavigation: "#opt-enable-scroll-path-navigation",
@@ -32,6 +36,7 @@ function parseNonNegativeInt(value, fallback) {
 
 function getRenderOptions() {
   const showValueTypeEl = document.querySelector(selectors.showValueType);
+  const editableEl = document.querySelector(selectors.editable);
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
   const enableScrollPathNavigationEl = document.querySelector(selectors.enableScrollPathNavigation);
@@ -42,6 +47,7 @@ function getRenderOptions() {
 
   const options = {
     showValueType: showValueTypeEl ? showValueTypeEl.checked : true,
+    editable: editableEl ? editableEl.checked : false,
     virtualize: virtualizeEl ? virtualizeEl.checked : true,
   };
 
@@ -68,6 +74,27 @@ function getRenderOptions() {
   return options;
 }
 
+function hideRawJsonOutput() {
+  const sectionEl = document.querySelector(selectors.rawJsonSection);
+  if (sectionEl) {
+    sectionEl.hidden = true;
+  }
+}
+
+function syncSaveButtonVisibility() {
+  const editableEl = document.querySelector(selectors.editable);
+  const saveBtn = document.querySelector(selectors.saveJson);
+  const isEditable = editableEl ? editableEl.checked : false;
+
+  if (saveBtn) {
+    saveBtn.hidden = !isEditable;
+  }
+
+  if (!isEditable) {
+    hideRawJsonOutput();
+  }
+}
+
 function syncOptionControlsState() {
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
@@ -76,6 +103,8 @@ function syncOptionControlsState() {
   const defaultExpandedAllEl = document.querySelector(selectors.defaultExpandedAll);
   const defaultExpandedEnabledEl = document.querySelector(selectors.defaultExpandedEnabled);
   const defaultExpandedDepthEl = document.querySelector(selectors.defaultExpandedDepth);
+
+  syncSaveButtonVisibility();
 
   if (showScrollPathEl && virtualizeEl) {
     showScrollPathEl.disabled = !virtualizeEl.checked;
@@ -187,6 +216,7 @@ function renderTree(data, statusText) {
   state.currentTree = jsonview.renderJSON(data, state.rootEl, getRenderOptions());
   updateStats(state.rootEl);
   setStatus(statusText, false);
+  hideRawJsonOutput();
 }
 
 function rerenderCurrentData(statusText = "Options updated and tree re-rendered.") {
@@ -202,7 +232,9 @@ function bindControls() {
   const collapseBtn = document.querySelector(selectors.collapse);
   const generateLargeBtn = document.querySelector(selectors.generateLarge);
   const loadExampleBtn = document.querySelector(selectors.loadExample);
+  const saveJsonBtn = document.querySelector(selectors.saveJson);
   const showValueTypeEl = document.querySelector(selectors.showValueType);
+  const editableEl = document.querySelector(selectors.editable);
   const virtualizeEl = document.querySelector(selectors.virtualize);
   const showScrollPathEl = document.querySelector(selectors.showScrollPath);
   const enableScrollPathNavigationEl = document.querySelector(selectors.enableScrollPathNavigation);
@@ -255,8 +287,32 @@ function bindControls() {
       }
     });
 
+  saveJsonBtn &&
+    saveJsonBtn.addEventListener("click", () => {
+      if (!state.currentTree) {
+        return;
+      }
+
+      // tree.value is the same object graph renderJSON was given; edits made via
+      // editable mode mutate it in place, so this reflects the current, edited state.
+      const rawJson = JSON.stringify(state.currentTree.value, null, 2);
+      const sectionEl = document.querySelector(selectors.rawJsonSection);
+      const outputEl = document.querySelector(selectors.rawJsonOutput);
+
+      if (outputEl) {
+        outputEl.textContent = rawJson;
+      }
+
+      if (sectionEl) {
+        sectionEl.hidden = false;
+      }
+
+      setStatus("Current tree data saved as raw JSON below.", false);
+    });
+
   const optionControls = [
     showValueTypeEl,
+    editableEl,
     virtualizeEl,
     showScrollPathEl,
     enableScrollPathNavigationEl,

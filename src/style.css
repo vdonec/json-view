@@ -94,6 +94,21 @@
   margin-left: 4px;
 }
 
+.json-container .json-editable {
+  cursor: text;
+}
+
+.json-container .json-value-input {
+  font: inherit;
+  color: inherit;
+  background-color: #fff;
+  border: 1px solid #98a2b3;
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: -1px 0;
+  min-width: 40px;
+}
+
 .json-container .json-number {
   color: #f9ae58;
 }
